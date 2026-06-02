@@ -28,6 +28,12 @@ export default function Agendamentos() {
     loadAgendamentos(user)
   }
 
+  async function apagar(ag) {
+    if(!confirm('Apagar agendamento de "'+( ag.clientes?.nome||'cliente')+'\" em '+ag.data+'? Esta ação não pode ser desfeita.')) return
+    await supabase.from('agendamentos').delete().eq('id', ag.id)
+    loadAgendamentos(user)
+  }
+
   const isGestor = user?.role === 'gestor'
 
   return (
@@ -49,7 +55,8 @@ export default function Agendamentos() {
               <td style={s.td}>
                 <div style={{display:'flex',gap:5}}>
                   {a.status !== 'concluido' && <button style={s.btnSm} onClick={()=>concluir(a.id)}>✓ Concluir</button>}
-                  {isGestor && <Link href={`/notas`} style={{...s.btnSm,...s.btnPrimary}}>🧾 NF</Link>}
+                  {isGestor && <button style={s.btnSm} onClick={()=>apagar(a)}>🗑️ Apagar</button>}
+                  {isGestor && <Link href="/notas" style={{...s.btnSm,...s.btnPrimary}}>🧾 NF</Link>}
                 </div>
               </td>
             </tr>
