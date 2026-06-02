@@ -42,8 +42,6 @@ export default function Layout({ children, title = 'Dashboard' }) {
   return (
     <div style={s.app}>
       <div style={s.sidebar}>
-
-        {/* LOGO + NOME EMPRESA */}
         <div style={s.brandArea}>
           <img src={LOGO_SRC} alt="Top Eletro Inova" style={s.logoImg} />
           <div>
@@ -51,16 +49,6 @@ export default function Layout({ children, title = 'Dashboard' }) {
             <div style={s.brandSlogan}>Inova</div>
           </div>
         </div>
-
-        {/* USUÁRIO LOGADO — só nome e perfil, sem bloco grande */}
-        <div style={s.userBar}>
-          <div style={{...s.userDot, background: isGestor ? '#9FE1CB' : '#B5D4F4', color: isGestor ? '#085041' : '#0C447C'}}>
-            {user.nome.split(' ').map(n=>n[0]).slice(0,2).join('')}
-          </div>
-          <span style={s.userBarName}>{user.nome}</span>
-          <span style={s.userBarRole}>{isGestor ? '👑' : '🔧'}</span>
-        </div>
-
         <nav style={s.nav}>
           {nav.map(item => (
             <Link key={item.href} href={item.href} style={{...s.navItem, ...(router.pathname===item.href ? s.navActive : {})}}>
@@ -68,14 +56,13 @@ export default function Layout({ children, title = 'Dashboard' }) {
             </Link>
           ))}
         </nav>
-        <button style={s.logoutBtn} onClick={logout}>↩ Sair</button>
+        <button style={s.logoutBtn} onClick={logout}>↩ Sair ({user.nome})</button>
       </div>
-
       <div style={s.main}>
         <div style={s.topbar}>
           <div style={s.topbarTitle}>{title}</div>
           {isGestor && (
-            <div style={{display:'flex',gap:8}}>
+            <div style={{display:"flex",gap:8}}>
               <Link href="/os" style={s.btnSm}>+ Nova OS</Link>
               <Link href="/recibo" style={{...s.btnSm,...s.btnPrimary}}>🧾 Recibo</Link>
             </div>
@@ -88,24 +75,20 @@ export default function Layout({ children, title = 'Dashboard' }) {
 }
 
 const s = {
-  app:{display:'flex',height:'100vh',overflow:'hidden'},
-  sidebar:{width:220,borderRight:'1px solid #e8e8e8',display:'flex',flexDirection:'column',background:'#fafaf8',flexShrink:0},
-  brandArea:{display:'flex',alignItems:'center',gap:10,padding:'14px 16px 12px',borderBottom:'1px solid #e8e8e8'},
-  logoImg:{width:40,height:40,borderRadius:8,objectFit:'contain',flexShrink:0,background:'#fff',border:'1px solid #f0f0f0'},
-  brandName:{fontSize:15,fontWeight:700,lineHeight:1.2,color:'#1a1a1a'},
-  brandSlogan:{fontSize:11,color:'#1D9E75',fontWeight:600},
-  userBar:{display:'flex',alignItems:'center',gap:7,padding:'7px 14px',borderBottom:'1px solid #f0f0f0',background:'#f5f5f3'},
-  userDot:{width:22,height:22,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700,flexShrink:0},
-  userBarName:{fontSize:11,fontWeight:500,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'},
-  userBarRole:{fontSize:12},
-  nav:{padding:'8px 10px',flex:1,display:'flex',flexDirection:'column',gap:2,overflow:'auto'},
-  navItem:{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,fontSize:13,color:'#666'},
-  navActive:{background:'#fff',color:'#1D9E75',fontWeight:500},
-  logoutBtn:{margin:10,padding:'7px 10px',borderRadius:8,border:'1px solid #e0e0e0',background:'transparent',fontSize:12,cursor:'pointer',color:'#888',textAlign:'left'},
-  main:{flex:1,overflow:'auto',display:'flex',flexDirection:'column'},
-  topbar:{padding:'12px 24px',borderBottom:'1px solid #e8e8e8',background:'#fff',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0},
+  app:{display:"flex",height:"100vh",overflow:"hidden"},
+  sidebar:{width:220,borderRight:"1px solid #e8e8e8",display:"flex",flexDirection:"column",background:"#fafaf8",flexShrink:0},
+  brandArea:{display:"flex",alignItems:"center",gap:10,padding:"14px 16px 12px",borderBottom:"1px solid #e8e8e8"},
+  logoImg:{width:40,height:40,borderRadius:8,objectFit:"contain",flexShrink:0,background:"#fff",border:"1px solid #f0f0f0"},
+  brandName:{fontSize:15,fontWeight:700,lineHeight:1.2,color:"#1a1a1a"},
+  brandSlogan:{fontSize:11,color:"#1D9E75",fontWeight:600},
+  nav:{padding:"8px 10px",flex:1,display:"flex",flexDirection:"column",gap:2,overflow:"auto"},
+  navItem:{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:8,fontSize:13,color:"#666"},
+  navActive:{background:"#fff",color:"#1D9E75",fontWeight:500},
+  logoutBtn:{margin:10,padding:"7px 10px",borderRadius:8,border:"1px solid #e0e0e0",background:"transparent",fontSize:12,cursor:"pointer",color:"#888",textAlign:"left"},
+  main:{flex:1,overflow:"auto",display:"flex",flexDirection:"column"},
+  topbar:{padding:"12px 24px",borderBottom:"1px solid #e8e8e8",background:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0},
   topbarTitle:{fontSize:16,fontWeight:500},
-  content:{padding:'20px 24px',flex:1,overflow:'auto'},
-  btnSm:{display:'inline-flex',alignItems:'center',padding:'5px 12px',borderRadius:8,border:'1px solid #e0e0e0',fontSize:12,fontWeight:500,color:'#1a1a1a',background:'#fff'},
-  btnPrimary:{background:'#1D9E75',color:'#fff',border:'1px solid #1D9E75'},
+  content:{padding:"20px 24px",flex:1,overflow:"auto"},
+  btnSm:{display:"inline-flex",alignItems:"center",padding:"5px 12px",borderRadius:8,border:"1px solid #e0e0e0",fontSize:12,fontWeight:500,color:"#1a1a1a",background:"#fff"},
+  btnPrimary:{background:"#1D9E75",color:"#fff",border:"1px solid #1D9E75"},
 }
