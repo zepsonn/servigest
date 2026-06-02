@@ -24,15 +24,12 @@ export default function Recibo() {
 
   const fmt = n => Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
   const fmtDate = d => d ? new Date(d+'T12:00').toLocaleDateString('pt-BR') : '-'
-
   function up(campo, valor){ setForm({...form, [campo]: valor}) }
 
   function formatarTelBR(tel) {
     let num = (tel||'').replace(/[^0-9]/g, '')
     if (num.startsWith('55')) num = num.slice(2)
-    if (num.length === 10) {
-      num = num.slice(0,2) + '9' + num.slice(2)
-    }
+    if (num.length === 10) num = num.slice(0,2) + '9' + num.slice(2)
     return '55' + num
   }
 
@@ -41,179 +38,186 @@ export default function Recibo() {
     const mudancas = []
     const campos = {cliente_nome:'Nome', cliente_telefone:'Telefone', cliente_endereco:'Endereco', produto:'Produto', servico:'Servico', descricao:'Descricao', valor:'Valor', observacoes:'Obs'}
     for(const [k,label] of Object.entries(campos)){
-      if(String(os[k]||'') !== String(form[k]||'')){
-        mudancas.push(label + ': "' + (os[k]||'-') + '" -> "' + (form[k]||'-') + '"')
-      }
+      if(String(os[k]||'') !== String(form[k]||'')) mudancas.push(label+': "'+( os[k]||'-')+'" -> "'+( form[k]||'-')+'"')
     }
     const agora = new Date().toLocaleString('pt-BR')
-    const histAnterior = os.historico_alteracoes || ''
-    const novoHist = mudancas.length
-      ? (histAnterior ? histAnterior + '\n' : '') + '[' + agora + '] ' + mudancas.join(' | ')
-      : histAnterior
-
+    const novoHist = mudancas.length ? ((os.historico_alteracoes?os.historico_alteracoes+'\n':'')+'['+agora+'] '+mudancas.join(' | ')) : (os.historico_alteracoes||'')
     const { error } = await supabase.from('ordens_servico').update({
-      cliente_nome: form.cliente_nome,
-      cliente_telefone: form.cliente_telefone,
-      cliente_endereco: form.cliente_endereco,
-      produto: form.produto,
-      servico: form.servico,
-      descricao: form.descricao,
-      valor: Number(form.valor)||0,
-      observacoes: form.observacoes,
+      cliente_nome:form.cliente_nome, cliente_telefone:form.cliente_telefone,
+      cliente_endereco:form.cliente_endereco, produto:form.produto,
+      servico:form.servico, descricao:form.descricao,
+      valor:Number(form.valor)||0, observacoes:form.observacoes,
       alterada: mudancas.length ? true : os.alterada,
       historico_alteracoes: novoHist,
     }).eq('id', os.id)
     setSalvando(false)
-    if(!error){
-      alert(mudancas.length ? 'Alteracoes salvas na OS!' : 'Nenhuma mudanca detectada.')
-      setOs({...form, alterada: mudancas.length ? true : os.alterada, historico_alteracoes: novoHist})
-      setEditando(false)
-    } else { alert('Erro ao salvar.') }
+    if(!error){ alert(mudancas.length ? 'Alteracoes salvas!' : 'Sem mudancas.'); setOs({...form,alterada:mudancas.length?true:os.alterada,historico_alteracoes:novoHist}); setEditando(false) }
+    else alert('Erro ao salvar.')
   }
 
   function sendWhatsApp() {
     if(!form) return
     const telFormatado = formatarTelBR(form.cliente_telefone)
-    if(telFormatado.length < 12){ alert('Telefone do cliente invalido'); return }
-    const msg = '🔧 *' + empresa.nome + '* \n' +
-      '━━━━━━━━━━━━━━━━━━\n\n' +
-      '📋 *RECIBO - OS N' + String.fromCharCode(186) + ' ' + form.numero + '*\n\n' +
-      '👤 *Cliente:* ' + (form.cliente_nome||'-') + '\n' +
-      '📞 *Telefone:* ' + (form.cliente_telefone||'-') + '\n' +
-      '📍 *Endereco:* ' + (form.cliente_endereco||'-') + '\n\n' +
-      '🔧 *Produto:* ' + (form.produto||'-') + '\n' +
-      '⚙️ *Servico:* ' + (form.servico||'-') + '\n' +
-      (form.descricao ? '📝 *Diagnostico:* ' + form.descricao + '\n' : '') +
-      '📅 *Data:* ' + fmtDate(form.data_entrada) + '\n\n' +
-      '━━━━━━━━━━━━━━━━━━\n' +
-      '💰 *VALOR TOTAL: ' + fmt(form.valor) + '*\n' +
-      '━━━━━━━━━━━━━━━━━━\n\n' +
-      (form.observacoes ? '📌 *Obs:* ' + form.observacoes + '\n\n' : '') +
-      'Agradecemos pela confianca! 🙏\n' +
-      '*' + empresa.nome + '*\n' +
-      '📞 ' + (empresa.telefone||'') + '\n' +
-      '📧 ' + (empresa.email||'')
-    window.open('https://wa.me/' + telFormatado + '?text=' + encodeURIComponent(msg),'_blank')
+    if(telFormatado.length < 12){ alert('Telefone invalido'); return }
+    const linha = '================================'
+    const msg = [
+      empresa.nome,
+      linha,
+      'RECIBO - OS N. ' + form.numero,
+      linha,
+      'Cliente: ' + (form.cliente_nome||'-'),
+      'Telefone: ' + (form.cliente_telefone||'-'),
+      'Endereco: ' + (form.cliente_endereco||'-'),
+      '',
+      'Produto: ' + (form.produto||'-'),
+      'Servico: ' + (form.servico||'-'),
+      form.descricao ? 'Diagnostico: ' + form.descricao : '',
+      'Data: ' + fmtDate(form.data_entrada),
+      '',
+      linha,
+      'VALOR TOTAL: ' + fmt(form.valor),
+      linha,
+      form.observacoes ? 'Obs: ' + form.observacoes : '',
+      '',
+      'Agradecemos pela confianca e preferencia!',
+      'Qualquer duvida estamos a disposicao.',
+      '',
+      empresa.nome,
+      'Tel: ' + (empresa.telefone||''),
+      'Email: ' + (empresa.email||''),
+    ].filter(l => l !== null).join('\n')
+    window.open('https://wa.me/' + telFormatado + '?text=' + encodeURIComponent(msg), '_blank')
   }
 
-  function imprimir(){ window.print() }
+  function imprimir(){
+    const conteudo = document.getElementById('recibo-para-imprimir').innerHTML
+    const janela = window.open('', '_blank', 'width=800,height=600')
+    janela.document.write('<html><head><title>Recibo OS ' + (form?.numero||'') + '</title>')
+    janela.document.write('<style>')
+    janela.document.write('body{font-family:Arial,sans-serif;padding:30px;color:#1a1a1a;max-width:700px;margin:0 auto}')
+    janela.document.write('.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #e0e0e0}')
+    janela.document.write('.logo{width:56px;height:56px;border-radius:8px;object-fit:contain}')
+    janela.document.write('.badge{background:#1D9E75;color:#fff;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;display:inline-block}')
+    janela.document.write('.os-num{font-size:20px;font-weight:700;color:#1D9E75}')
+    janela.document.write('.section{margin-bottom:16px;padding:14px;background:#f9f9f7;border-radius:8px;border:1px solid #eeeeee}')
+    janela.document.write('.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#aaa;margin-bottom:10px}')
+    janela.document.write('.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px}')
+    janela.document.write('.full{grid-column:1/-1}')
+    janela.document.write('.field-label{font-weight:600;color:#555}')
+    janela.document.write('.total-row{display:flex;justify-content:flex-end;align-items:center;gap:16px;padding:12px 0;border-top:2px solid #1D9E75;margin-top:8px}')
+    janela.document.write('.total-val{font-size:22px;font-weight:700;color:#1D9E75}')
+    janela.document.write('.obs{font-size:12px;color:#888;padding:8px 12px;background:#f9f9f7;border-radius:6px;margin-top:8px}')
+    janela.document.write('.assinaturas{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:32px;padding-top:16px;border-top:1px dashed #e0e0e0}')
+    janela.document.write('.assinatura{text-align:center;font-size:11px;color:#888;border-top:1px solid #333;padding-top:6px}')
+    janela.document.write('@media print{body{padding:15px}}')
+    janela.document.write('</style></head><body>')
+    janela.document.write(conteudo)
+    janela.document.write('</body></html>')
+    janela.document.close()
+    setTimeout(()=>janela.print(), 500)
+  }
 
   function EditField({campo, label, type, textarea, gridFull}){
     return (
       <div style={gridFull?{gridColumn:'1/-1'}:{}}>
         <span style={st.fieldLabel}>{label}:</span>{' '}
-        {editando ? (
-          textarea
-            ? <textarea style={st.inlineInput} value={form[campo]||''} onChange={e=>up(campo, e.target.value)} />
-            : <input type={type||'text'} style={st.inlineInputSmall} value={form[campo]||''} onChange={e=>up(campo, e.target.value)} />
-        ) : (
-          <span>{type==='number' ? fmt(form[campo]) : (form[campo] || '-')}</span>
-        )}
+        {editando
+          ? textarea
+            ? <textarea style={st.inlineInput} value={form[campo]||''} onChange={e=>up(campo,e.target.value)} />
+            : <input type={type||'text'} style={st.inlineInputSmall} value={form[campo]||''} onChange={e=>up(campo,e.target.value)} />
+          : <span>{type==='number' ? fmt(form[campo]) : (form[campo]||'-')}</span>}
       </div>
     )
   }
 
   return (
     <Layout title="Recibo">
-      <style>{`
-        @media print {
-          .no-print, .no-print * { display: none !important; }
-          body { background: white !important; margin: 0; padding: 0; }
-          .print-only { 
-            position: fixed !important; 
-            top: 0; left: 0; right: 0; bottom: 0; 
-            width: 100% !important; 
-            margin: 0 !important; 
-            padding: 20px !important;
-            max-width: 100% !important;
-            box-shadow: none !important;
-            border: none !important;
-          }
-        }
-      `}</style>
       <div style={{maxWidth:720,margin:'0 auto'}}>
         {!os && (
           <div style={{background:'#fff',border:'1px solid #e8e8e8',borderRadius:10,padding:24}}>
-            <div style={{fontSize:14,fontWeight:500,marginBottom:16}}>Selecionar Ordem de Servico para gerar o recibo</div>
+            <div style={{fontSize:14,fontWeight:500,marginBottom:16}}>Selecionar Ordem de Servico</div>
             <OSSelector onSelect={carregarOS} />
           </div>
         )}
         {os && form && (
           <>
-            <div className="no-print" style={{display:'flex',gap:8,marginBottom:16,justifyContent:'flex-end',flexWrap:'wrap'}}>
+            <div style={{display:'flex',gap:8,marginBottom:16,justifyContent:'flex-end',flexWrap:'wrap'}}>
               <button style={st.btnSm} onClick={()=>{setOs(null);setForm(null)}}>Trocar OS</button>
-              {!editando && <button style={st.btnSm} onClick={()=>setEditando(true)}>✏️ Editar campos</button>}
-              {editando && <button style={{...st.btnSm,background:'#1D9E75',color:'#fff',border:'1px solid #1D9E75'}} onClick={salvarNaOS} disabled={salvando}>{salvando?'Salvando...':'💾 Salvar alteracoes na OS'}</button>}
+              {!editando && <button style={st.btnSm} onClick={()=>setEditando(true)}>Editar campos</button>}
+              {editando && <button style={{...st.btnSm,background:'#1D9E75',color:'#fff',border:'none'}} onClick={salvarNaOS} disabled={salvando}>{salvando?'Salvando...':'Salvar na OS'}</button>}
               {editando && <button style={st.btnSm} onClick={()=>{setForm(os);setEditando(false)}}>Cancelar</button>}
-              <button style={st.btnSm} onClick={imprimir}>🖨️ Imprimir / PDF</button>
-              <button style={{...st.btnSm,background:'#25D366',color:'#fff',border:'1px solid #25D366'}} onClick={sendWhatsApp}>📲 Enviar WhatsApp</button>
+              <button style={st.btnSm} onClick={imprimir}>Imprimir / PDF</button>
+              <button style={{...st.btnSm,background:'#25D366',color:'#fff',border:'1px solid #25D366'}} onClick={sendWhatsApp}>Enviar WhatsApp</button>
             </div>
 
-            <div className="print-only" style={st.recibo}>
-              <div style={st.header}>
-                <div style={{display:'flex',alignItems:'center',gap:12}}>
-                  <img src={LOGO_SRC} alt="logo" style={{width:56,height:56,borderRadius:8,objectFit:'contain',background:'#fff',border:'1px solid #f0f0f0'}} />
-                  <div>
-                    <div style={{fontSize:18,fontWeight:700}}>{empresa.nome}</div>
-                    {empresa.cnpj && <div style={{fontSize:11,color:'#888'}}>CNPJ: {empresa.cnpj}</div>}
-                    <div style={{fontSize:11,color:'#888'}}>{empresa.cidade}</div>
-                    <div style={{fontSize:11,color:'#888'}}>{empresa.telefone}{empresa.email?' - '+empresa.email:''}</div>
+            {/* RECIBO VISUAL */}
+            <div style={st.recibo}>
+              <div id="recibo-para-imprimir">
+                <div class="header" style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20,paddingBottom:16,borderBottom:'2px solid #e0e0e0'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:12}}>
+                    <img src={LOGO_SRC} class="logo" alt="logo" style={{width:56,height:56,borderRadius:8,objectFit:'contain',border:'1px solid #f0f0f0'}} />
+                    <div>
+                      <div style={{fontSize:18,fontWeight:700}}>{empresa.nome}</div>
+                      <div style={{fontSize:11,color:'#888'}}>CNPJ: {empresa.cnpj}</div>
+                      <div style={{fontSize:11,color:'#888'}}>{empresa.cidade}</div>
+                      <div style={{fontSize:11,color:'#888'}}>{empresa.telefone} - {empresa.email}</div>
+                    </div>
+                  </div>
+                  <div style={{textAlign:'right'}}>
+                    <div class="badge" style={{background:'#1D9E75',color:'#fff',padding:'3px 10px',borderRadius:4,fontSize:10,fontWeight:700,display:'inline-block',marginBottom:4}}>RECIBO</div>
+                    {os.alterada && <div style={{background:'#FAEEDA',color:'#854F0B',padding:'2px 8px',borderRadius:4,fontSize:9,fontWeight:700,display:'inline-block',marginLeft:4}}>ALTERADA</div>}
+                    <div class="os-num" style={{fontSize:20,fontWeight:700,color:'#1D9E75'}}>OS N. {form.numero}</div>
+                    <div style={{fontSize:11,color:'#888'}}>Emissao: {fmtDate(form.data_entrada)}</div>
                   </div>
                 </div>
-                <div style={{textAlign:'right'}}>
-                  <div style={{background:'#1D9E75',color:'#fff',padding:'3px 10px',borderRadius:4,fontSize:10,fontWeight:700,display:'inline-block',marginBottom:4}}>RECIBO</div>
-                  {os.alterada && <div style={{background:'#FAEEDA',color:'#854F0B',padding:'2px 8px',borderRadius:4,fontSize:9,fontWeight:700,display:'inline-block',marginLeft:4}}>ALTERADA</div>}
-                  <div style={{fontSize:20,fontWeight:700,color:'#1D9E75'}}>OS N {form.numero}</div>
-                  <div style={{fontSize:11,color:'#888'}}>Emissao: {fmtDate(form.data_entrada)}</div>
+
+                <div class="section" style={{marginBottom:16,padding:14,background:'#f9f9f7',borderRadius:8,border:'1px solid #eee'}}>
+                  <div class="section-title" style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.07em',color:'#aaa',marginBottom:10}}>Dados do Cliente</div>
+                  <div class="grid2" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,fontSize:13}}>
+                    <EditField campo="cliente_nome" label="Nome" />
+                    <EditField campo="cliente_telefone" label="Telefone" />
+                    <EditField campo="cliente_endereco" label="Endereco" gridFull />
+                  </div>
                 </div>
-              </div>
 
-              <div style={st.section}>
-                <div style={st.sectionTitle}>Dados do Cliente</div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,fontSize:13}}>
-                  <EditField campo="cliente_nome" label="Nome" />
-                  <EditField campo="cliente_telefone" label="Telefone" />
-                  <EditField campo="cliente_endereco" label="Endereco" gridFull />
+                <div class="section" style={{marginBottom:16,padding:14,background:'#f9f9f7',borderRadius:8,border:'1px solid #eee'}}>
+                  <div class="section-title" style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.07em',color:'#aaa',marginBottom:10}}>Ordem de Servico</div>
+                  <div class="grid2" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,fontSize:13,marginBottom:10}}>
+                    <EditField campo="produto" label="Produto/Equipamento" />
+                    <div><span style={st.fieldLabel}>Tecnico:</span> {os.usuarios?.nome||'-'}</div>
+                    <div><span style={st.fieldLabel}>Data entrada:</span> {fmtDate(form.data_entrada)}</div>
+                    <div><span style={st.fieldLabel}>Data conclusao:</span> {fmtDate(form.data_conclusao)}</div>
+                  </div>
+                  <div style={{marginBottom:8,fontSize:13}}><EditField campo="servico" label="Servico realizado" /></div>
+                  <div style={{fontSize:13}}><EditField campo="descricao" label="Diagnostico" textarea /></div>
                 </div>
-              </div>
 
-              <div style={st.section}>
-                <div style={st.sectionTitle}>Ordem de Servico</div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,fontSize:13,marginBottom:10}}>
-                  <EditField campo="produto" label="Produto/Equipamento" />
-                  <div><span style={st.fieldLabel}>Tecnico:</span> {os.usuarios?.nome||'-'}</div>
-                  <div><span style={st.fieldLabel}>Data de entrada:</span> {fmtDate(form.data_entrada)}</div>
-                  <div><span style={st.fieldLabel}>Data de conclusao:</span> {fmtDate(form.data_conclusao)}</div>
+                <div class="total-row" style={{display:'flex',justifyContent:'flex-end',alignItems:'center',gap:16,padding:'12px 0',borderTop:'2px solid #1D9E75',marginTop:8}}>
+                  <span style={{fontSize:13,color:'#666'}}>Total do servico</span>
+                  {editando
+                    ? <input type="number" style={{...st.inlineInputSmall,width:130,fontSize:18,fontWeight:700,textAlign:'right'}} value={form.valor||0} onChange={e=>up('valor',e.target.value)} />
+                    : <span class="total-val" style={{fontSize:22,fontWeight:700,color:'#1D9E75'}}>{fmt(form.valor)}</span>}
                 </div>
-                <div style={{marginBottom:8,fontSize:13}}><EditField campo="servico" label="Servico realizado" /></div>
-                <div style={{fontSize:13}}><EditField campo="descricao" label="Descricao/Diagnostico" textarea /></div>
-              </div>
 
-              <div style={{display:'flex',justifyContent:'flex-end',alignItems:'center',gap:16,padding:'12px 0',borderTop:'2px solid #1D9E75',marginTop:8}}>
-                <span style={{fontSize:13,color:'#666'}}>Total do servico</span>
-                {editando
-                  ? <input type="number" style={{...st.inlineInputSmall,width:120,fontSize:18,fontWeight:700,textAlign:'right'}} value={form.valor||0} onChange={e=>up('valor', e.target.value)} />
-                  : <span style={{fontSize:22,fontWeight:700,color:'#1D9E75'}}>{fmt(form.valor)}</span>}
-              </div>
+                <div class="obs" style={{fontSize:12,color:'#888',padding:'8px 12px',background:'#f9f9f7',borderRadius:6,marginTop:8}}>
+                  <strong>Obs:</strong>{' '}
+                  {editando
+                    ? <textarea style={st.inlineInput} value={form.observacoes||''} onChange={e=>up('observacoes',e.target.value)} />
+                    : (form.observacoes||'-')}
+                </div>
 
-              <div style={{fontSize:12,color:'#888',marginTop:8,padding:'8px 12px',background:'#f9f9f7',borderRadius:6}}>
-                <strong>Obs:</strong>{' '}
-                {editando
-                  ? <textarea style={st.inlineInput} value={form.observacoes||''} onChange={e=>up('observacoes', e.target.value)} />
-                  : (form.observacoes||'-')}
+                <div class="assinaturas" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,marginTop:32,paddingTop:16,borderTop:'1px dashed #e0e0e0'}}>
+                  <div class="assinatura" style={{textAlign:'center',borderTop:'1px solid #333',paddingTop:6,fontSize:11,color:'#888'}}>{empresa.nome}</div>
+                  <div class="assinatura" style={{textAlign:'center',borderTop:'1px solid #333',paddingTop:6,fontSize:11,color:'#888'}}>Cliente: {form.cliente_nome||'_______'}</div>
+                </div>
               </div>
 
               {os.historico_alteracoes && (
-                <div className="no-print" style={{fontSize:11,color:'#999',marginTop:10,padding:'8px 12px',background:'#fdf6ec',borderRadius:6,borderLeft:'3px solid #E2900A'}}>
+                <div style={{fontSize:11,color:'#999',marginTop:10,padding:'8px 12px',background:'#fdf6ec',borderRadius:6,borderLeft:'3px solid #E2900A'}}>
                   <strong>Historico de alteracoes:</strong>
                   <pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',margin:'4px 0 0'}}>{os.historico_alteracoes}</pre>
                 </div>
               )}
-
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,marginTop:32,paddingTop:16,borderTop:'1px dashed #e0e0e0'}}>
-                <div style={{textAlign:'center'}}><div style={{borderTop:'1px solid #333',paddingTop:6,fontSize:11,color:'#888'}}>{empresa.nome}</div></div>
-                <div style={{textAlign:'center'}}><div style={{borderTop:'1px solid #333',paddingTop:6,fontSize:11,color:'#888'}}>Cliente: {form.cliente_nome||'_______'}</div></div>
-              </div>
             </div>
           </>
         )}
@@ -226,16 +230,16 @@ function OSSelector({onSelect}) {
   const [lista, setLista] = useState([])
   const [busca, setBusca] = useState('')
   useEffect(()=>{ supabase.from('ordens_servico').select('*').order('criado_em',{ascending:false}).then(({data})=>setLista(data||[])) },[])
-  const filtradas = lista.filter(os => (os.cliente_nome||'').toLowerCase().includes(busca.toLowerCase()) || (os.cliente_telefone||'').includes(busca) || String(os.numero).includes(busca))
+  const filtradas = lista.filter(o => (o.cliente_nome||'').toLowerCase().includes(busca.toLowerCase()) || (o.cliente_telefone||'').includes(busca) || String(o.numero).includes(busca))
   const fmt = n => Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
   return (
     <div>
-      <input style={{width:'100%',padding:'8px 12px',borderRadius:8,border:'1px solid #e0e0e0',fontSize:13,fontFamily:'inherit',marginBottom:12}} placeholder="Buscar por nome, telefone ou n OS..." value={busca} onChange={e=>setBusca(e.target.value)} />
+      <input style={{width:'100%',padding:'8px 12px',borderRadius:8,border:'1px solid #e0e0e0',fontSize:13,fontFamily:'inherit',marginBottom:12}} placeholder="Buscar por nome, telefone ou numero OS..." value={busca} onChange={e=>setBusca(e.target.value)} />
       <div style={{display:'flex',flexDirection:'column',gap:6,maxHeight:360,overflow:'auto'}}>
-        {filtradas.map(os=>(
-          <div key={os.id} onClick={()=>onSelect(os)} style={{padding:'10px 14px',border:'1px solid #e8e8e8',borderRadius:8,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:13,background:'#fafaf8'}}>
-            <div><div style={{fontWeight:500}}>#{os.numero} - {os.cliente_nome||'Cliente nao informado'} {os.alterada?'(alterada)':''}</div><div style={{fontSize:11,color:'#888',marginTop:2}}>{os.servico||'Sem servico'} - {os.cliente_telefone||'-'}</div></div>
-            <div style={{fontWeight:600,color:'#1D9E75'}}>{fmt(os.valor)}</div>
+        {filtradas.map(o=>(
+          <div key={o.id} onClick={()=>onSelect(o)} style={{padding:'10px 14px',border:'1px solid #e8e8e8',borderRadius:8,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:13,background:'#fafaf8'}}>
+            <div><div style={{fontWeight:500}}>#{o.numero} - {o.cliente_nome||'Sem nome'}{o.alterada?' (alterada)':''}</div><div style={{fontSize:11,color:'#888',marginTop:2}}>{o.servico||'Sem servico'} - {o.cliente_telefone||'-'}</div></div>
+            <div style={{fontWeight:600,color:'#1D9E75'}}>{fmt(o.valor)}</div>
           </div>
         ))}
         {filtradas.length===0 && <div style={{fontSize:13,color:'#aaa',textAlign:'center',padding:16}}>Nenhuma OS encontrada.</div>}
@@ -245,10 +249,7 @@ function OSSelector({onSelect}) {
 }
 
 const st = {
-  recibo:{background:'#fff',border:'1px solid #e8e8e8',borderRadius:12,padding:28,fontFamily:'DM Sans, sans-serif'},
-  header:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20,paddingBottom:16,borderBottom:'2px solid #f0f0f0'},
-  section:{marginBottom:16,padding:14,background:'#fafaf8',borderRadius:8,border:'1px solid #f0f0f0'},
-  sectionTitle:{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.07em',color:'#aaa',marginBottom:10},
+  recibo:{background:'#fff',border:'1px solid #e8e8e8',borderRadius:12,padding:28},
   fieldLabel:{fontWeight:600,color:'#555'},
   inlineInput:{width:'100%',padding:'6px 9px',borderRadius:6,border:'1px solid #1D9E75',fontSize:13,fontFamily:'inherit',marginTop:4,minHeight:50,resize:'vertical'},
   inlineInputSmall:{padding:'4px 8px',borderRadius:6,border:'1px solid #1D9E75',fontSize:13,fontFamily:'inherit',minWidth:140},
