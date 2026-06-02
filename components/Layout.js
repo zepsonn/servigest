@@ -26,20 +26,21 @@ export default function Layout({ children, title = 'Dashboard' }) {
   const isGestor = user.role === 'gestor'
 
   const navGestor = [
-    { href: '/dashboard', icon: '\u229E', label: 'Dashboard' },
-    { href: '/clientes', icon: '\uD83D\uDC65', label: 'Clientes' },
-    { href: '/os', icon: '\uD83D\uDD27', label: 'Ordens de Servico' },
-    { href: '/agendamentos', icon: '\uD83D\uDCC5', label: 'Agendamentos' },
-    { href: '/recibo', icon: '\uD83E\uDDFE', label: 'Recibos' },
-    { href: '/faturamento', icon: '\uD83D\uDCCA', label: 'Faturamento' },
-    { href: '/funcionarios', icon: '\uD83E\uDEAA', label: 'Funcionarios' },
+    { href: '/dashboard', icon: 'DASH', label: 'Dashboard' },
+    { href: '/clientes', icon: 'CLI', label: 'Clientes' },
+    { href: '/os', icon: 'OS', label: 'Ordens de Servico' },
+    { href: '/agendamentos', icon: 'AGD', label: 'Agendamentos' },
+    { href: '/recibo', icon: 'REC', label: 'Recibos' },
+    { href: '/faturamento', icon: 'FAT', label: 'Faturamento' },
+    { href: '/funcionarios', icon: 'FUN', label: 'Funcionarios' },
   ]
   const navFunc = [
-    { href: '/dashboard', icon: '\uD83D\uDCC5', label: 'Meus Servicos' },
-    { href: '/os', icon: '\uD83D\uDD27', label: 'Ordens de Servico' },
-    { href: '/historico', icon: '\uD83D\uDD50', label: 'Historico' },
-    { href: '/clientes', icon: '\uD83D\uDC65', label: 'Clientes' },
+    { href: '/dashboard', icon: 'AGD', label: 'Meus Servicos' },
+    { href: '/os', icon: 'OS', label: 'Ordens de Servico' },
+    { href: '/historico', icon: 'HIST', label: 'Historico' },
+    { href: '/clientes', icon: 'CLI', label: 'Clientes' },
   ]
+  const emoji = {DASH:'\u{1F4CA}',CLI:'\u{1F465}',OS:'\u{1F527}',AGD:'\u{1F4C5}',REC:'\u{1F9FE}',FAT:'\u{1F4B0}',FUN:'\u{1FAAA}',HIST:'\u{1F550}'}
   const nav = isGestor ? navGestor : navFunc
 
   const s = {
@@ -80,14 +81,13 @@ export default function Layout({ children, title = 'Dashboard' }) {
         <nav style={s.nav}>
           {nav.map(item => (
             <Link key={item.href} href={item.href} style={{...s.navItem, ...(router.pathname===item.href ? s.navActive : {})}}>
-              <span>{item.icon}</span> {item.label}
+              <span>{emoji[item.icon]}</span> {item.label}
             </Link>
           ))}
         </nav>
 
-        {/* BOTAO DE TEMA */}
         <button style={s.themeBtn} onClick={()=>setTemaAberto(!temaAberto)}>
-          {t.dark ? '\uD83C\uDF19' : '\u2600\uFE0F'} Tema {temaAberto ? '\u25B2' : '\u25BC'}
+          {t.dark ? '\u{1F319}' : '\u2600\uFE0F'} Tema {temaAberto ? '\u25B2' : '\u25BC'}
         </button>
         {temaAberto && (
           <div style={s.popover}>
@@ -105,7 +105,7 @@ export default function Layout({ children, title = 'Dashboard' }) {
           </div>
         )}
 
-        <button style={s.logoutBtn} onClick={logout}>\u21A9 Sair</button>
+        <button style={s.logoutBtn} onClick={logout}>{'\u21A9'} Sair</button>
       </div>
       <div style={s.main}>
         <div style={s.topbar}>
@@ -113,7 +113,7 @@ export default function Layout({ children, title = 'Dashboard' }) {
           {isGestor && (
             <div style={{display:'flex',gap:8}}>
               <Link href="/os" style={s.btnSm}>+ Nova OS</Link>
-              <Link href="/recibo" style={{...s.btnSm,...s.btnPrimary}}>\uD83E\uDDFE Recibo</Link>
+              <Link href="/recibo" style={{...s.btnSm,...s.btnPrimary}}>{'\u{1F9FE}'} Recibo</Link>
             </div>
           )}
         </div>
