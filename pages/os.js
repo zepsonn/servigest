@@ -4,26 +4,24 @@ import { supabase } from '../lib/supabase'
 import { useRouter } from 'next/router'
 
 const STATUS_COLORS = {
-  aberta: ['#E6F1FB','#185FA5'],
-  em_andamento: ['#FAEEDA','#854F0B'],
-  concluida: ['#EAF3DE','#3B6D11'],
-  cancelada: ['#FCEBEB','#A32D2D'],
+  aberta:['#E6F1FB','#185FA5'], em_andamento:['#FAEEDA','#854F0B'],
+  concluida:['#EAF3DE','#3B6D11'], cancelada:['#FCEBEB','#A32D2D'],
 }
-function Badge({s}){ const [bg,c]=STATUS_COLORS[s]||['#F1EFE8','#5F5E5A']; return <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:500,background:bg,color:c}}>{s.replace('_',' ')}</span>}
+function Badge({s}){ const [bg,c]=STATUS_COLORS[s]||['#F1EFE8','#5F5E5A']; return <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:500,background:bg,color:c}}>{(s||'').replace('_',' ')}</span>}
+
+const CAMPOS_FORM = {cliente_id:'',cliente_nome:'',cliente_telefone:'',cliente_endereco:'',produto:'',servico:'',descricao:'',valor:0,status:'aberta',data_entrada:new Date().toISOString().split('T')[0],data_conclusao:'',tecnico_id:'',observacoes:''}
 
 export default function OS() {
   const [lista, setLista] = useState([])
-  const [busca, setBusca] = useState('')
+  const [busca, setBusca] = useState([])
+  const [busca2, setBusca2] = useState('')
   const [modal, setModal] = useState(false)
+  const [editModal, setEditModal] = useState(null)
   const [clientes, setClientes] = useState([])
   const [tecnicos, setTecnicos] = useState([])
   const [user, setUser] = useState(null)
-  const [form, setForm] = useState({
-    cliente_id:'', cliente_nome:'', cliente_telefone:'', cliente_endereco:'',
-    produto:'', servico:'', descricao:'', valor:0,
-    status:'aberta', data_entrada:new Date().toISOString().split('T')[0],
-    data_conclusao:'', tecnico_id:'', observacoes:''
-  })
+  const [form, setForm] = useState(CAMPOS_FORM)
+  const [editForm, setEditForm] = useState({})
   const router = useRouter()
 
   useEffect(()=>{
@@ -39,52 +37,104 @@ export default function OS() {
     setLista(data||[])
   }
 
-  function selecionarCliente(id) {
+  function selecionarCliente(id, target) {
     const c = clientes.find(x=>x.id===id)
-    if(c) setForm({...form, cliente_id:c.id, cliente_nome:c.nome, cliente_telefone:c.telefone||'', cliente_endereco:c.endereco||''})
-    else setForm({...form, cliente_id:''})
+    if(c && target==='novo') setForm({...form,cliente_id:c.id,cliente_nome:c.nome,cliente_telefone:c.telefone||'',cliente_endereco:c.endereco||''})
+    if(c && target==='edit') setEditForm({...editForm,cliente_id:c.id,cliente_nome:c.nome,cliente_telefone:c.telefone||'',cliente_endereco:c.endereco||''})
   }
 
   async function salvar() {
     if(!form.data_entrada){ alert('Preencha a data de entrada'); return }
-    await supabase.from('ordens_servico').insert([{
-      ...form,
-      valor: Number(form.valor)||0,
-      cliente_id: form.cliente_id||null,
-      tecnico_id: form.tecnico_id||null,
-      data_conclusao: form.data_conclusao||null,
-    }])
-    setModal(false)
-    resetForm()
+    await supabase.from('ordens_servico').insert([{...form,valor:Number(form.valor)||0,cliente_id:form.cliente_id||null,tecnico_id:form.tecnico_id||null,data_conclusao:form.data_conclusao||null}])
+    setModal(false); setForm(CAMPOS_FORM); loadOS()
+  }
+
+  async function salvarEdicao() {
+    await supabase.from('ordens_servico').update({
+      cliente_nome:editForm.cliente_nome, cliente_telefone:editForm.cliente_telefone,
+      cliente_endereco:editForm.cliente_endereco, produto:editForm.produto,
+      servico:editForm.servico, descricao:editForm.descricao,
+      valor:Number(editForm.valor)||0, status:editForm.status,
+      data_entrada:editForm.data_entrada, data_conclusao:editForm.data_conclusao||null,
+      tecnico_id:editForm.tecnico_id||null, observacoes:editForm.observacoes,
+    }).eq('id', editModal.id)
+    setEditModal(null); loadOS()
+  }
+
+  async function apagar(os) {
+    if(!confirm('Apagar a OS #'+os.numero+' de "'+os.cliente_nome+'"? Esta ação não pode ser desfeita.')) return
+    await supabase.from('ordens_servico').delete().eq('id', os.id)
     loadOS()
   }
 
   async function atualizarStatus(id, status) {
-    await supabase.from('ordens_servico').update({status, ...(status==='concluida'?{data_conclusao:new Date().toISOString().split('T')[0]}:{})}).eq('id',id)
+    await supabase.from('ordens_servico').update({status,...(status==='concluida'?{data_conclusao:new Date().toISOString().split('T')[0]}:{})}).eq('id',id)
     loadOS()
   }
 
-  function resetForm(){
-    setForm({cliente_id:'',cliente_nome:'',cliente_telefone:'',cliente_endereco:'',produto:'',servico:'',descricao:'',valor:0,status:'aberta',data_entrada:new Date().toISOString().split('T')[0],data_conclusao:'',tecnico_id:'',observacoes:''})
-  }
-
   const filtradas = lista.filter(os =>
-    (os.cliente_nome||'').toLowerCase().includes(busca.toLowerCase()) ||
-    (os.cliente_telefone||'').includes(busca) ||
-    String(os.numero).includes(busca) ||
-    (os.servico||'').toLowerCase().includes(busca.toLowerCase())
+    (os.cliente_nome||'').toLowerCase().includes(busca2.toLowerCase()) ||
+    (os.cliente_telefone||'').includes(busca2) ||
+    String(os.numero).includes(busca2) ||
+    (os.servico||'').toLowerCase().includes(busca2.toLowerCase()) ||
+    (os.produto||'').toLowerCase().includes(busca2.toLowerCase())
   )
 
-  const fmt = n => Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
+  const fmt = n => Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
+  const servicos = ['Limpeza residencial','Limpeza comercial','Manutenção','Instalação','Reparo elétrico','Troca de peças','Diagnóstico','Orçamento','Outro']
+
+  function FormOS({f, setF, target}) {
+    return <>
+      <div style={sg.section}>CLIENTE</div>
+      <div style={sg.fg}><label style={sg.label}>Selecionar cliente cadastrado</label>
+        <select style={sg.input} onChange={e=>selecionarCliente(e.target.value,target)}>
+          <option value="">— Selecione ou preencha manualmente —</option>
+          {clientes.map(c=><option key={c.id} value={c.id}>{c.nome} · {c.telefone}</option>)}
+        </select>
+      </div>
+      <div style={sg.row2}>
+        <div style={sg.fg}><label style={sg.label}>Nome</label><input style={sg.input} value={f.cliente_nome||''} onChange={e=>setF({...f,cliente_nome:e.target.value})} /></div>
+        <div style={sg.fg}><label style={sg.label}>Telefone</label><input style={sg.input} value={f.cliente_telefone||''} onChange={e=>setF({...f,cliente_telefone:e.target.value})} /></div>
+      </div>
+      <div style={sg.fg}><label style={sg.label}>Endereço</label><input style={sg.input} value={f.cliente_endereco||''} onChange={e=>setF({...f,cliente_endereco:e.target.value})} /></div>
+      <div style={sg.section}>SERVIÇO</div>
+      <div style={sg.row2}>
+        <div style={sg.fg}><label style={sg.label}>Produto / Equipamento</label><input style={sg.input} value={f.produto||''} placeholder="Ex: Geladeira Brastemp" onChange={e=>setF({...f,produto:e.target.value})} /></div>
+        <div style={sg.fg}><label style={sg.label}>Serviço realizado</label><input style={sg.input} value={f.servico||''} placeholder="Ex: Troca de compressor" onChange={e=>setF({...f,servico:e.target.value})} /></div>
+      </div>
+      <div style={sg.fg}><label style={sg.label}>Descrição / Diagnóstico</label><textarea style={{...sg.input,minHeight:70,resize:'vertical'}} value={f.descricao||''} onChange={e=>setF({...f,descricao:e.target.value})} /></div>
+      <div style={sg.row2}>
+        <div style={sg.fg}><label style={sg.label}>Valor (R$)</label><input style={sg.input} type="number" value={f.valor||0} onChange={e=>setF({...f,valor:e.target.value})} /></div>
+        <div style={sg.fg}><label style={sg.label}>Status</label>
+          <select style={sg.input} value={f.status||'aberta'} onChange={e=>setF({...f,status:e.target.value})}>
+            <option value="aberta">Aberta</option>
+            <option value="em_andamento">Em andamento</option>
+            <option value="concluida">Concluída</option>
+            <option value="cancelada">Cancelada</option>
+          </select>
+        </div>
+      </div>
+      <div style={sg.row2}>
+        <div style={sg.fg}><label style={sg.label}>Data de entrada *</label><input style={sg.input} type="date" value={f.data_entrada||''} onChange={e=>setF({...f,data_entrada:e.target.value})} /></div>
+        <div style={sg.fg}><label style={sg.label}>Data de conclusão</label><input style={sg.input} type="date" value={f.data_conclusao||''} onChange={e=>setF({...f,data_conclusao:e.target.value})} /></div>
+      </div>
+      <div style={sg.fg}><label style={sg.label}>Técnico responsável</label>
+        <select style={sg.input} value={f.tecnico_id||''} onChange={e=>setF({...f,tecnico_id:e.target.value})}>
+          <option value="">Selecione...</option>
+          {tecnicos.map(t=><option key={t.id} value={t.id}>{t.nome}</option>)}
+        </select>
+      </div>
+      <div style={sg.fg}><label style={sg.label}>Observações</label><textarea style={{...sg.input,minHeight:60,resize:'vertical'}} value={f.observacoes||''} onChange={e=>setF({...f,observacoes:e.target.value})} /></div>
+    </>
+  }
 
   return (
     <Layout title="Ordens de Serviço">
       <div style={s.toolbar}>
-        <input style={s.search} placeholder="🔍 Buscar por nome, telefone, nº OS ou serviço..." value={busca} onChange={e=>setBusca(e.target.value)} />
+        <input style={s.search} placeholder="🔍 Buscar por nome, telefone, nº OS, produto ou serviço..." value={busca2} onChange={e=>setBusca2(e.target.value)} />
         <button style={s.btnPrimary} onClick={()=>setModal(true)}>+ Nova OS</button>
       </div>
 
-      {/* STATS */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:20}}>
         {[['Abertas','aberta','#185FA5'],['Em andamento','em_andamento','#854F0B'],['Concluídas','concluida','#3B6D11'],['Canceladas','cancelada','#A32D2D']].map(([label,st,color])=>(
           <div key={st} style={{background:'#fff',border:'1px solid #e8e8e8',borderRadius:10,padding:'12px 16px'}}>
@@ -102,17 +152,17 @@ export default function OS() {
               <td style={s.td}><strong>#{os.numero}</strong></td>
               <td style={s.td}>{os.cliente_nome||'—'}</td>
               <td style={s.td}>{os.cliente_telefone||'—'}</td>
-              <td style={s.td}><div style={{fontSize:12}}><div style={{fontWeight:500}}>{os.produto||'—'}</div><div style={{color:'#888'}}>{os.servico}</div></div></td>
+              <td style={s.td}><div style={{fontSize:12}}><div style={{fontWeight:500}}>{os.produto||'—'}</div><div style={{color:'#888'}}>{os.servico||'—'}</div></div></td>
               <td style={s.td}>{fmt(os.valor)}</td>
               <td style={s.td}>{os.data_entrada ? new Date(os.data_entrada+'T12:00').toLocaleDateString('pt-BR') : '—'}</td>
               <td style={s.td}>{os.usuarios?.nome||'—'}</td>
               <td style={s.td}><Badge s={os.status}/></td>
               <td style={s.td}>
                 <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-                  {os.status!=='concluida' && os.status!=='cancelada' && (
-                    <button style={{...s.btnSm,background:'#1D9E75',color:'#fff',border:'none'}} onClick={()=>atualizarStatus(os.id,'concluida')}>✓ Concluir</button>
-                  )}
-                  <button style={s.btnSm} onClick={()=>router.push(`/recibo?os=${os.id}`)}>🧾 Recibo</button>
+                  {os.status!=='concluida'&&os.status!=='cancelada'&&<button style={{...s.btnSm,background:'#1D9E75',color:'#fff',border:'none'}} onClick={()=>atualizarStatus(os.id,'concluida')}>✓</button>}
+                  <button style={s.btnSm} onClick={()=>{setEditForm({...os,tecnico_id:os.tecnico_id||''});setEditModal(os)}}>✏️</button>
+                  <button style={s.btnSm} onClick={()=>router.push('/recibo?os='+os.id)}>🧾</button>
+                  <button style={{...s.btnSm,color:'#A32D2D',borderColor:'#FCEBEB'}} onClick={()=>apagar(os)}>🗑️</button>
                 </div>
               </td>
             </tr>
@@ -121,65 +171,29 @@ export default function OS() {
         {filtradas.length===0 && <div style={{padding:24,textAlign:'center',color:'#aaa',fontSize:13}}>Nenhuma OS encontrada.</div>}
       </div>
 
+      {/* MODAL NOVA OS */}
       {modal && (
         <div style={s.overlay}>
           <div style={s.modal}>
-            <div style={s.mHead}><span>Nova Ordem de Serviço</span><button style={s.xBtn} onClick={()=>{setModal(false);resetForm()}}>×</button></div>
-            
-            <div style={s.section}>CLIENTE</div>
-            <div style={s.fg}><label style={s.label}>Selecionar cliente cadastrado</label>
-              <select style={s.input} onChange={e=>selecionarCliente(e.target.value)}>
-                <option value="">— Selecione ou preencha manualmente —</option>
-                {clientes.map(c=><option key={c.id} value={c.id}>{c.nome} · {c.telefone}</option>)}
-              </select>
-            </div>
-            <div style={s.row2}>
-              <FG label="Nome do cliente" value={form.cliente_nome} onChange={v=>setForm({...form,cliente_nome:v})} />
-              <FG label="Telefone" value={form.cliente_telefone} onChange={v=>setForm({...form,cliente_telefone:v})} />
-            </div>
-            <FG label="Endereço" value={form.cliente_endereco} onChange={v=>setForm({...form,cliente_endereco:v})} />
+            <div style={s.mHead}><span>Nova Ordem de Serviço</span><button style={s.xBtn} onClick={()=>{setModal(false);setForm(CAMPOS_FORM)}}>×</button></div>
+            <FormOS f={form} setF={setForm} target="novo" />
+            <div style={s.btnRow}><button style={s.btnSecondary} onClick={()=>{setModal(false);setForm(CAMPOS_FORM)}}>Cancelar</button><button style={s.btnPrimary} onClick={salvar}>Salvar OS</button></div>
+          </div>
+        </div>
+      )}
 
-            <div style={s.section}>SERVIÇO</div>
-            <div style={s.row2}>
-              <FG label="Produto / Equipamento" value={form.produto} onChange={v=>setForm({...form,produto:v})} placeholder="Ex: Geladeira Brastemp" />
-              <FG label="Servico realizado" value={form.servico} onChange={v=>setForm({...form,servico:v})} placeholder="Ex: Troca de compressor" />
-            </div>
-            <FG label="Descrição / Diagnóstico" value={form.descricao} onChange={v=>setForm({...form,descricao:v})} textarea placeholder="Descreva o problema e o que foi feito..." />
-            <div style={s.row2}>
-              <FG label="Valor (R$)" value={form.valor} onChange={v=>setForm({...form,valor:v})} type="number" />
-              <div style={s.fg}><label style={s.label}>Status</label>
-                <select style={s.input} value={form.status} onChange={e=>setForm({...form,status:e.target.value})}>
-                  <option value="aberta">Aberta</option>
-                  <option value="em_andamento">Em andamento</option>
-                  <option value="concluida">Concluída</option>
-                </select>
-              </div>
-            </div>
-            <div style={s.row2}>
-              <FG label="Data de entrada *" value={form.data_entrada} onChange={v=>setForm({...form,data_entrada:v})} type="date" />
-              <FG label="Data de conclusão" value={form.data_conclusao} onChange={v=>setForm({...form,data_conclusao:v})} type="date" />
-            </div>
-            <div style={s.fg}><label style={s.label}>Técnico responsável</label>
-              <select style={s.input} value={form.tecnico_id} onChange={e=>setForm({...form,tecnico_id:e.target.value})}>
-                <option value="">Selecione...</option>
-                {tecnicos.map(t=><option key={t.id} value={t.id}>{t.nome}</option>)}
-              </select>
-            </div>
-            <FG label="Observações" value={form.observacoes} onChange={v=>setForm({...form,observacoes:v})} textarea />
-            <div style={s.btnRow}>
-              <button style={s.btnSecondary} onClick={()=>{setModal(false);resetForm()}}>Cancelar</button>
-              <button style={s.btnPrimary} onClick={salvar}>Salvar OS</button>
-            </div>
+      {/* MODAL EDITAR OS */}
+      {editModal && (
+        <div style={s.overlay}>
+          <div style={s.modal}>
+            <div style={s.mHead}><span>Editar OS #{editModal.numero}</span><button style={s.xBtn} onClick={()=>setEditModal(null)}>×</button></div>
+            <FormOS f={editForm} setF={setEditForm} target="edit" />
+            <div style={s.btnRow}><button style={s.btnSecondary} onClick={()=>setEditModal(null)}>Cancelar</button><button style={s.btnPrimary} onClick={salvarEdicao}>Salvar alterações</button></div>
           </div>
         </div>
       )}
     </Layout>
   )
-}
-
-function FG({label,value,onChange,type='text',textarea,placeholder}){
-  const inp={width:'100%',padding:'7px 10px',borderRadius:8,border:'1px solid #e0e0e0',fontSize:13,fontFamily:'inherit',minHeight:textarea?70:undefined,resize:textarea?'vertical':undefined}
-  return <div style={{marginBottom:12}}><label style={{display:'block',fontSize:11,color:'#888',fontWeight:500,marginBottom:3}}>{label}</label>{textarea?<textarea style={inp} value={value} placeholder={placeholder} onChange={e=>onChange(e.target.value)}/>:<input style={inp} type={type} value={value} placeholder={placeholder} onChange={e=>onChange(e.target.value)}/>}</div>
 }
 
 const s = {
@@ -195,10 +209,13 @@ const s = {
   overlay:{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center'},
   modal:{background:'#fff',borderRadius:12,padding:24,width:580,maxWidth:'96vw',maxHeight:'92vh',overflow:'auto'},
   mHead:{fontSize:15,fontWeight:600,marginBottom:16,display:'flex',justifyContent:'space-between',alignItems:'center'},
+  xBtn:{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#888'},
+  btnRow:{display:'flex',gap:8,justifyContent:'flex-end',marginTop:16},
+}
+const sg = {
   section:{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.07em',color:'#aaa',margin:'16px 0 8px',paddingBottom:6,borderBottom:'1px solid #f0f0f0'},
   fg:{marginBottom:12},
   label:{display:'block',fontSize:11,color:'#888',fontWeight:500,marginBottom:3},
   input:{width:'100%',padding:'7px 10px',borderRadius:8,border:'1px solid #e0e0e0',fontSize:13,fontFamily:'inherit'},
   row2:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12},
-  btnRow:{display:'flex',gap:8,justifyContent:'flex-end',marginTop:16},
 }
