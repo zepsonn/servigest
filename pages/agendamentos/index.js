@@ -17,7 +17,7 @@ export default function Agendamentos() {
   },[])
 
   async function loadAgendamentos(u) {
-    let q = supabase.from('agendamentos').select('*, clientes(nome), usuarios(nome)').order('data').order('hora')
+    let q = supabase.from('agendamentos').select('*, clientes(nome, telefone, endereco), usuarios(nome)').order('data').order('hora')
     if (u.role !== 'gestor') q = q.eq('funcionario_id', u.id)
     const { data } = await q
     setAgendamentos(data||[])
@@ -29,9 +29,39 @@ export default function Agendamentos() {
   }
 
   async function apagar(ag) {
-    if(!confirm('Apagar agendamento de "'+( ag.clientes?.nome||'cliente')+'\" em '+ag.data+'? Esta ação não pode ser desfeita.')) return
+    if(!confirm('Apagar agendamento de "'+(ag.clientes?.nome||'cliente')+'"? Esta acao nao pode ser desfeita.')) return
     await supabase.from('agendamentos').delete().eq('id', ag.id)
     loadAgendamentos(user)
+  }
+
+  function compartilharWhatsApp(ag) {
+    const fmtDate = d => d ? new Date(d+'T12:00').toLocaleDateString('pt-BR') : '-'
+    const msg = [
+      'Top Eletro - Inova',
+      '================================',
+      'NOVO SERVICO DISPONIVEL',
+      '================================',
+      '',
+      'Cliente: ' + (ag.clientes?.nome || '-'),
+      'Telefone: ' + (ag.clientes?.telefone || '-'),
+      'Endereco: ' + (ag.clientes?.endereco || '-'),
+      '',
+      'Servico: ' + (ag.servico || '-'),
+      'Data: ' + fmtDate(ag.data),
+      'Hora: ' + (ag.hora?.slice(0,5) || '-'),
+      '',
+      ag.observacoes ? 'Obs: ' + ag.observacoes : '',
+      '',
+      '================================',
+      'Quem tiver disponibilidade,',
+      'responda esta mensagem confirmando!',
+      '================================',
+      '',
+      'Top Eletro - Inova',
+      'Tel: (41) 99846-1851 / 3206-7414',
+    ].filter(l => l !== null).join('\n')
+
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank')
   }
 
   const isGestor = user?.role === 'gestor'
@@ -46,22 +76,30 @@ export default function Agendamentos() {
           <thead><tr>{['Cliente','Serviço','Data','Hora','Funcionário','Status','Ações'].map(h=><th key={h} style={s.th}>{h}</th>)}</tr></thead>
           <tbody>{agendamentos.map(a=>(
             <tr key={a.id}>
-              <td style={s.td}>{a.clientes?.nome}</td>
+              <td style={s.td}><div style={{fontWeight:500}}>{a.clientes?.nome}</div><div style={{fontSize:11,color:'#888'}}>{a.clientes?.telefone}</div></td>
               <td style={s.td}>{a.servico}</td>
               <td style={s.td}>{new Date(a.data+'T12:00').toLocaleDateString('pt-BR')}</td>
               <td style={s.td}>{a.hora?.slice(0,5)}</td>
-              <td style={s.td}>{a.usuarios?.nome}</td>
+              <td style={s.td}>{a.usuarios?.nome || <span style={{color:'#aaa',fontStyle:'italic'}}>Não atribuído</span>}</td>
               <td style={s.td}><Badge s={a.status}/></td>
               <td style={s.td}>
-                <div style={{display:'flex',gap:5}}>
+                <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+                  {/* BOTÃO COMPARTILHAR WHATSAPP — destaque */}
+                  <button
+                    style={{...s.btnSm, background:'#25D366', color:'#fff', border:'1px solid #25D366', fontWeight:500}}
+                    onClick={()=>compartilharWhatsApp(a)}
+                    title="Compartilhar serviço com técnicos"
+                  >
+                    📲 Compartilhar
+                  </button>
                   {a.status !== 'concluido' && <button style={s.btnSm} onClick={()=>concluir(a.id)}>✓ Concluir</button>}
-                  {isGestor && <button style={s.btnSm} onClick={()=>apagar(a)}>🗑️ Apagar</button>}
-                  {isGestor && <Link href="/notas" style={{...s.btnSm,...s.btnPrimary}}>🧾 NF</Link>}
+                  {isGestor && <button style={{...s.btnSm,color:'#A32D2D',borderColor:'#FCEBEB'}} onClick={()=>apagar(a)}>🗑️</button>}
                 </div>
               </td>
             </tr>
           ))}</tbody>
         </table>
+        {agendamentos.length===0 && <div style={{padding:24,textAlign:'center',color:'#aaa',fontSize:13}}>Nenhum agendamento encontrado.</div>}
       </div>
     </Layout>
   )
