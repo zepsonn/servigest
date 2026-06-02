@@ -27,9 +27,17 @@ export default function Recibo() {
 
   function up(campo, valor){ setForm({...form, [campo]: valor}) }
 
+  function formatarTelBR(tel) {
+    let num = (tel||'').replace(/[^0-9]/g, '')
+    if (num.startsWith('55')) num = num.slice(2)
+    if (num.length === 10) {
+      num = num.slice(0,2) + '9' + num.slice(2)
+    }
+    return '55' + num
+  }
+
   async function salvarNaOS() {
     setSalvando(true)
-    // monta historico do que estava antes
     const mudancas = []
     const campos = {cliente_nome:'Nome', cliente_telefone:'Telefone', cliente_endereco:'Endereco', produto:'Produto', servico:'Servico', descricao:'Descricao', valor:'Valor', observacoes:'Obs'}
     for(const [k,label] of Object.entries(campos)){
@@ -60,22 +68,36 @@ export default function Recibo() {
       alert(mudancas.length ? 'Alteracoes salvas na OS!' : 'Nenhuma mudanca detectada.')
       setOs({...form, alterada: mudancas.length ? true : os.alterada, historico_alteracoes: novoHist})
       setEditando(false)
-    } else {
-      alert('Erro ao salvar.')
-    }
+    } else { alert('Erro ao salvar.') }
   }
 
   function sendWhatsApp() {
     if(!form) return
-    const tel = (form.cliente_telefone||'').replace(/\D/g,'')
-    if(!tel){ alert('Cliente sem telefone'); return }
-    const msg = 'Ola, ' + form.cliente_nome + '! \uD83D\uDC4B\n\nSegue seu recibo referente ao servico realizado por *' + empresa.nome + '*.\n\n\uD83D\uDCCB *OS N ' + form.numero + '*\n\uD83D\uDD27 Produto: ' + (form.produto||'-') + '\n\u2699\uFE0F Servico: ' + form.servico + '\n\uD83D\uDCC5 Data: ' + fmtDate(form.data_entrada) + '\n\n\uD83D\uDCB0 *Valor: ' + fmt(form.valor) + '*\n\n' + (form.observacoes||'') + '\n\nAgradecemos a preferencia! \uD83D\uDE0A'
-    window.open('https://wa.me/55' + tel + '?text=' + encodeURIComponent(msg),'_blank')
+    const telFormatado = formatarTelBR(form.cliente_telefone)
+    if(telFormatado.length < 12){ alert('Telefone do cliente invalido'); return }
+    const msg = '🔧 *' + empresa.nome + '* \n' +
+      '━━━━━━━━━━━━━━━━━━\n\n' +
+      '📋 *RECIBO - OS N' + String.fromCharCode(186) + ' ' + form.numero + '*\n\n' +
+      '👤 *Cliente:* ' + (form.cliente_nome||'-') + '\n' +
+      '📞 *Telefone:* ' + (form.cliente_telefone||'-') + '\n' +
+      '📍 *Endereco:* ' + (form.cliente_endereco||'-') + '\n\n' +
+      '🔧 *Produto:* ' + (form.produto||'-') + '\n' +
+      '⚙️ *Servico:* ' + (form.servico||'-') + '\n' +
+      (form.descricao ? '📝 *Diagnostico:* ' + form.descricao + '\n' : '') +
+      '📅 *Data:* ' + fmtDate(form.data_entrada) + '\n\n' +
+      '━━━━━━━━━━━━━━━━━━\n' +
+      '💰 *VALOR TOTAL: ' + fmt(form.valor) + '*\n' +
+      '━━━━━━━━━━━━━━━━━━\n\n' +
+      (form.observacoes ? '📌 *Obs:* ' + form.observacoes + '\n\n' : '') +
+      'Agradecemos pela confianca! 🙏\n' +
+      '*' + empresa.nome + '*\n' +
+      '📞 ' + (empresa.telefone||'') + '\n' +
+      '📧 ' + (empresa.email||'')
+    window.open('https://wa.me/' + telFormatado + '?text=' + encodeURIComponent(msg),'_blank')
   }
 
   function imprimir(){ window.print() }
 
-  // campo editavel inline
   function EditField({campo, label, type, textarea, gridFull}){
     return (
       <div style={gridFull?{gridColumn:'1/-1'}:{}}>
@@ -93,7 +115,22 @@ export default function Recibo() {
 
   return (
     <Layout title="Recibo">
-      <style>{'@media print { .no-print { display: none !important; } body { background: white; } }'}</style>
+      <style>{`
+        @media print {
+          .no-print, .no-print * { display: none !important; }
+          body { background: white !important; margin: 0; padding: 0; }
+          .print-only { 
+            position: fixed !important; 
+            top: 0; left: 0; right: 0; bottom: 0; 
+            width: 100% !important; 
+            margin: 0 !important; 
+            padding: 20px !important;
+            max-width: 100% !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
+        }
+      `}</style>
       <div style={{maxWidth:720,margin:'0 auto'}}>
         {!os && (
           <div style={{background:'#fff',border:'1px solid #e8e8e8',borderRadius:10,padding:24}}>
@@ -105,14 +142,14 @@ export default function Recibo() {
           <>
             <div className="no-print" style={{display:'flex',gap:8,marginBottom:16,justifyContent:'flex-end',flexWrap:'wrap'}}>
               <button style={st.btnSm} onClick={()=>{setOs(null);setForm(null)}}>Trocar OS</button>
-              {!editando && <button style={st.btnSm} onClick={()=>setEditando(true)}>Editar campos</button>}
-              {editando && <button style={{...st.btnSm,background:'#1D9E75',color:'#fff',border:'1px solid #1D9E75'}} onClick={salvarNaOS} disabled={salvando}>{salvando?'Salvando...':'Salvar alteracoes na OS'}</button>}
-              {editando && <button style={st.btnSm} onClick={()=>{setForm(os);setEditando(false)}}>Cancelar edicao</button>}
-              <button style={st.btnSm} onClick={imprimir}>Imprimir / PDF</button>
-              <button style={{...st.btnSm,background:'#25D366',color:'#fff',border:'1px solid #25D366'}} onClick={sendWhatsApp}>Enviar WhatsApp</button>
+              {!editando && <button style={st.btnSm} onClick={()=>setEditando(true)}>✏️ Editar campos</button>}
+              {editando && <button style={{...st.btnSm,background:'#1D9E75',color:'#fff',border:'1px solid #1D9E75'}} onClick={salvarNaOS} disabled={salvando}>{salvando?'Salvando...':'💾 Salvar alteracoes na OS'}</button>}
+              {editando && <button style={st.btnSm} onClick={()=>{setForm(os);setEditando(false)}}>Cancelar</button>}
+              <button style={st.btnSm} onClick={imprimir}>🖨️ Imprimir / PDF</button>
+              <button style={{...st.btnSm,background:'#25D366',color:'#fff',border:'1px solid #25D366'}} onClick={sendWhatsApp}>📲 Enviar WhatsApp</button>
             </div>
 
-            <div style={st.recibo}>
+            <div className="print-only" style={st.recibo}>
               <div style={st.header}>
                 <div style={{display:'flex',alignItems:'center',gap:12}}>
                   <img src={LOGO_SRC} alt="logo" style={{width:56,height:56,borderRadius:8,objectFit:'contain',background:'#fff',border:'1px solid #f0f0f0'}} />
@@ -197,7 +234,7 @@ function OSSelector({onSelect}) {
       <div style={{display:'flex',flexDirection:'column',gap:6,maxHeight:360,overflow:'auto'}}>
         {filtradas.map(os=>(
           <div key={os.id} onClick={()=>onSelect(os)} style={{padding:'10px 14px',border:'1px solid #e8e8e8',borderRadius:8,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:13,background:'#fafaf8'}}>
-            <div><div style={{fontWeight:500}}>#{os.numero} - {os.cliente_nome||'Cliente nao informado'} {os.alterada?'(alterada)':''}</div><div style={{fontSize:11,color:'#888',marginTop:2}}>{os.servico} - {os.cliente_telefone||'-'}</div></div>
+            <div><div style={{fontWeight:500}}>#{os.numero} - {os.cliente_nome||'Cliente nao informado'} {os.alterada?'(alterada)':''}</div><div style={{fontSize:11,color:'#888',marginTop:2}}>{os.servico||'Sem servico'} - {os.cliente_telefone||'-'}</div></div>
             <div style={{fontWeight:600,color:'#1D9E75'}}>{fmt(os.valor)}</div>
           </div>
         ))}

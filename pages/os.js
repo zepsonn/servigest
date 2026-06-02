@@ -46,7 +46,7 @@ export default function OS() {
   }
 
   async function salvar() {
-    if(!form.servico || !form.data_entrada){ alert('Preencha serviço e data'); return }
+    if(!form.data_entrada){ alert('Preencha a data de entrada'); return }
     await supabase.from('ordens_servico').insert([{
       ...form,
       valor: Number(form.valor)||0,
@@ -142,7 +142,7 @@ export default function OS() {
             <div style={s.section}>SERVIÇO</div>
             <div style={s.row2}>
               <FG label="Produto / Equipamento" value={form.produto} onChange={v=>setForm({...form,produto:v})} placeholder="Ex: Geladeira Brastemp" />
-              <FG label="Serviço realizado *" value={form.servico} onChange={v=>setForm({...form,servico:v})} placeholder="Ex: Troca de compressor" />
+              <FG label="Servico realizado" value={form.servico} onChange={v=>setForm({...form,servico:v})} placeholder="Ex: Troca de compressor" />
             </div>
             <FG label="Descrição / Diagnóstico" value={form.descricao} onChange={v=>setForm({...form,descricao:v})} textarea placeholder="Descreva o problema e o que foi feito..." />
             <div style={s.row2}>
