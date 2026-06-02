@@ -23,13 +23,15 @@ export default function Layout({ children, title = 'Dashboard' }) {
   const navGestor = [
     { href: '/dashboard', icon: '⊞', label: 'Dashboard' },
     { href: '/clientes', icon: '👥', label: 'Clientes' },
+    { href: '/os', icon: '🔧', label: 'Ordens de Serviço' },
     { href: '/agendamentos', icon: '📅', label: 'Agendamentos' },
+    { href: '/recibo', icon: '🧾', label: 'Recibos' },
     { href: '/faturamento', icon: '📊', label: 'Faturamento' },
-    { href: '/notas', icon: '🧾', label: 'Notas Fiscais' },
     { href: '/funcionarios', icon: '🪪', label: 'Funcionários' },
   ]
   const navFunc = [
     { href: '/dashboard', icon: '📅', label: 'Meus Serviços' },
+    { href: '/os', icon: '🔧', label: 'Ordens de Serviço' },
     { href: '/historico', icon: '🕐', label: 'Histórico' },
     { href: '/clientes', icon: '👥', label: 'Clientes' },
   ]
@@ -38,14 +40,20 @@ export default function Layout({ children, title = 'Dashboard' }) {
   return (
     <div style={s.app}>
       <div style={s.sidebar}>
-        <div style={s.logo}>Servi<span style={{color:'#1D9E75'}}>Gest</span></div>
+        <div style={s.brandArea}>
+          <div style={s.logoBox}>TI</div>
+          <div>
+            <div style={s.brandName}>Top Eletro</div>
+            <div style={s.brandSlogan}>Inova</div>
+          </div>
+        </div>
         <div style={s.userPill}>
           <div style={{...s.avatar, background: isGestor ? '#9FE1CB' : '#B5D4F4', color: isGestor ? '#085041' : '#0C447C'}}>
             {user.nome.split(' ').map(n=>n[0]).slice(0,2).join('')}
           </div>
           <div>
             <div style={s.userName}>{user.nome}</div>
-            <div style={s.userRole}>{isGestor ? 'Gestor' : 'Funcionário'}</div>
+            <div style={s.userRole}>{isGestor ? '👑 Gestor' : '🔧 Técnico'}</div>
           </div>
         </div>
         <nav style={s.nav}>
@@ -62,8 +70,8 @@ export default function Layout({ children, title = 'Dashboard' }) {
           <div style={s.topbarTitle}>{title}</div>
           {isGestor && (
             <div style={{display:'flex',gap:8}}>
-              <Link href="/notas" style={s.btnSm}>+ Nova NF</Link>
-              <Link href="/agendamentos/novo" style={{...s.btnSm,...s.btnPrimary}}>+ Agendar</Link>
+              <Link href="/os" style={s.btnSm}>+ Nova OS</Link>
+              <Link href="/recibo" style={{...s.btnSm,...s.btnPrimary}}>🧾 Recibo</Link>
             </div>
           )}
         </div>
@@ -75,13 +83,16 @@ export default function Layout({ children, title = 'Dashboard' }) {
 
 const s = {
   app:{display:'flex',height:'100vh',overflow:'hidden'},
-  sidebar:{width:210,borderRight:'1px solid #e8e8e8',display:'flex',flexDirection:'column',background:'#fafaf8',flexShrink:0},
-  logo:{padding:'16px 20px 12px',fontSize:18,fontWeight:700,borderBottom:'1px solid #e8e8e8'},
+  sidebar:{width:220,borderRight:'1px solid #e8e8e8',display:'flex',flexDirection:'column',background:'#fafaf8',flexShrink:0},
+  brandArea:{display:'flex',alignItems:'center',gap:10,padding:'14px 16px',borderBottom:'1px solid #e8e8e8'},
+  logoBox:{width:38,height:38,borderRadius:8,background:'#1D9E75',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:13,flexShrink:0},
+  brandName:{fontSize:15,fontWeight:700,lineHeight:1.2},
+  brandSlogan:{fontSize:10,color:'#1D9E75',fontWeight:600},
   userPill:{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',borderBottom:'1px solid #e8e8e8'},
   avatar:{width:30,height:30,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,flexShrink:0},
   userName:{fontSize:12,fontWeight:500},
   userRole:{fontSize:10,color:'#888'},
-  nav:{padding:'8px 10px',flex:1,display:'flex',flexDirection:'column',gap:2},
+  nav:{padding:'8px 10px',flex:1,display:'flex',flexDirection:'column',gap:2,overflow:'auto'},
   navItem:{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,fontSize:13,color:'#666'},
   navActive:{background:'#fff',color:'#1D9E75',fontWeight:500},
   logoutBtn:{margin:10,padding:'7px 10px',borderRadius:8,border:'1px solid #e0e0e0',background:'transparent',fontSize:12,cursor:'pointer',color:'#888',textAlign:'left'},
