@@ -23,20 +23,22 @@ export default function Layout({ children, title = 'Dashboard' }) {
   const isGestor = user.role === 'gestor'
 
   const navGestor = [
-    { href: '/dashboard', icon: '⊞', label: 'Dashboard' },
-    { href: '/clientes', icon: '👥', label: 'Clientes' },
-    { href: '/os', icon: '🔧', label: 'Ordens de Serviço' },
-    { href: '/agendamentos', icon: '📅', label: 'Agendamentos' },
-    { href: '/recibo', icon: '🧾', label: 'Recibos' },
-    { href: '/faturamento', icon: '📊', label: 'Faturamento' },
-    { href: '/funcionarios', icon: '🪪', label: 'Funcionários' },
+    { href: '/dashboard', icon: 'cubo', label: 'Dashboard' },
+    { href: '/clientes', icon: 'pessoas', label: 'Clientes' },
+    { href: '/os', icon: 'chave', label: 'Ordens de Servico' },
+    { href: '/agendamentos', icon: 'cal', label: 'Agendamentos' },
+    { href: '/recibo', icon: 'recibo', label: 'Recibos' },
+    { href: '/faturamento', icon: 'grafico', label: 'Faturamento' },
+    { href: '/funcionarios', icon: 'cracha', label: 'Funcionarios' },
   ]
   const navFunc = [
-    { href: '/dashboard', icon: '📅', label: 'Meus Serviços' },
-    { href: '/os', icon: '🔧', label: 'Ordens de Serviço' },
-    { href: '/historico', icon: '🕐', label: 'Histórico' },
-    { href: '/clientes', icon: '👥', label: 'Clientes' },
+    { href: '/dashboard', icon: 'cal', label: 'Meus Servicos' },
+    { href: '/os', icon: 'chave', label: 'Ordens de Servico' },
+    { href: '/historico', icon: 'relogio', label: 'Historico' },
+    { href: '/clientes', icon: 'pessoas', label: 'Clientes' },
   ]
+
+  const icons = {cubo:'⊞',pessoas:'👥',chave:'🔧',cal:'📅',recibo:'🧾',grafico:'📊',cracha:'🪪',relogio:'🕐'}
   const nav = isGestor ? navGestor : navFunc
 
   return (
@@ -52,11 +54,11 @@ export default function Layout({ children, title = 'Dashboard' }) {
         <nav style={s.nav}>
           {nav.map(item => (
             <Link key={item.href} href={item.href} style={{...s.navItem, ...(router.pathname===item.href ? s.navActive : {})}}>
-              <span>{item.icon}</span> {item.label}
+              <span>{icons[item.icon]||'•'}</span> {item.label}
             </Link>
           ))}
         </nav>
-        <button style={s.logoutBtn} onClick={logout}>↩ Sair ({user.nome})</button>
+        <button style={s.logoutBtn} onClick={logout}>↩ Sair</button>
       </div>
       <div style={s.main}>
         <div style={s.topbar}>
