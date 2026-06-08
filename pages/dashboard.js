@@ -10,7 +10,7 @@ function Badge({s}){ const [bg,c]=badgeColors[s]||['#F1EFE8','#5F5E5A']; return 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [agendamentos, setAgendamentos] = useState([])
-  const [stats, setStats] = useState({clientes:0,hoje:0,andamento:0,concluidas:0,fat:0,desp:0,porMes:{}})
+  const [stats, setStats] = useState({clientes:0,hoje:0,andamento:0,concluidas:0,fat:0,desp:0,meses:[]})
   const { t } = useTheme()
 
   useEffect(() => {
@@ -32,8 +32,16 @@ export default function Dashboard() {
       const desptot = (desp||[]).reduce((s,d)=>s+Number(d.valor||0),0)
       const andamento = (os||[]).filter(o => o.status === 'em_andamento').length
       const hojeCount = (ag||[]).filter(a => a.data === hoje).length
-      const porMes = concl.reduce((acc,o)=>{ const m=(o.data_conclusao||o.data_entrada)?.slice(0,7); if(m){acc[m]=(acc[m]||0)+Number(o.valor||0)} return acc },{})
-      setStats({ clientes:clientes||0, hoje:hojeCount, andamento, concluidas:concl.length, fat, desp:desptot, porMes })
+
+      // agrupar por mes corretamente (soma tudo do mesmo mes)
+      const porMesMap = {}
+      concl.forEach(o => {
+        const m = (o.data_conclusao||o.data_entrada)?.slice(0,7)
+        if (m) porMesMap[m] = (porMesMap[m]||0) + Number(o.valor||0)
+      })
+      const meses = Object.entries(porMesMap).sort().slice(-6)
+
+      setStats({ clientes:clientes||0, hoje:hojeCount, andamento, concluidas:concl.length, fat, desp:desptot, meses })
       setAgendamentos(ag||[])
     } else {
       const { data: ag } = await supabase.from('agendamentos').select('*, clientes(nome)').eq('funcionario_id', u.id).order('data').limit(10)
@@ -45,15 +53,12 @@ export default function Dashboard() {
   const isGestor = user.role === 'gestor'
   const fmt = n => Number(n||0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   const lucro = stats.fat - stats.desp
-  const ticket = stats.concluidas ? stats.fat/stats.concluidas : 0
-  const meses = Object.entries(stats.porMes).sort().slice(-6)
-  const maxVal = Math.max(...meses.map(([,v])=>v),1)
+  const ticket = stats.concluidas ? stats.fat / stats.concluidas : 0
+  const maxVal = Math.max(...(stats.meses||[]).map(([,v])=>v), 1)
 
   const s = {
     grid4:{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:14},
-    bigCard:(highlight)=>({background:t.bgCard,border:'1px solid '+(highlight?t.accent:t.border),borderRadius:12,padding:'16px 18px',position:'relative',overflow:'hidden'}),
-    bigLabel:{fontSize:12,color:t.textSoft,marginBottom:6},
-    bigValue:(color)=>({fontSize:26,fontWeight:700,color:color||t.text,letterSpacing:'-0.5px'}),
+    bigCard:(highlight)=>({background:t.bgCard,border:'1px solid '+(highlight?t.accent:t.border),borderRadius:12,padding:'16px 18px'}),
     card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,overflow:'hidden',marginBottom:16},
     cardHead:{padding:'14px 18px',borderBottom:'1px solid '+t.borderSoft,display:'flex',alignItems:'center',justifyContent:'space-between'},
     cardTitle:{fontSize:14,fontWeight:600,color:t.text},
@@ -69,26 +74,26 @@ export default function Dashboard() {
     <Layout title={isGestor ? 'Dashboard' : 'Meus Serviços'}>
       {isGestor ? (
         <>
-          {/* CARDS PRINCIPAIS - estilo Utmify */}
+          {/* CARDS PRINCIPAIS */}
           <div style={s.grid4}>
             <div style={s.bigCard(false)}>
-              <div style={s.bigLabel}>Faturamento</div>
-              <div style={s.bigValue()}>{fmt(stats.fat)}</div>
+              <div style={{fontSize:12,color:t.textSoft,marginBottom:6}}>Faturamento</div>
+              <div style={{fontSize:26,fontWeight:700,color:t.text}}>{fmt(stats.fat)}</div>
               <div style={{fontSize:11,color:t.textSoft,marginTop:4}}>OS concluídas</div>
             </div>
             <div style={s.bigCard(false)}>
-              <div style={s.bigLabel}>Despesas</div>
-              <div style={s.bigValue('#A32D2D')}>{fmt(stats.desp)}</div>
+              <div style={{fontSize:12,color:t.textSoft,marginBottom:6}}>Despesas</div>
+              <div style={{fontSize:26,fontWeight:700,color:'#A32D2D'}}>{fmt(stats.desp)}</div>
               <div style={{fontSize:11,color:t.textSoft,marginTop:4}}>gastos da empresa</div>
             </div>
             <div style={s.bigCard(true)}>
-              <div style={s.bigLabel}>Lucro</div>
-              <div style={s.bigValue(lucro>=0?t.accent:'#A32D2D')}>{fmt(lucro)}</div>
+              <div style={{fontSize:12,color:t.textSoft,marginBottom:6}}>Lucro</div>
+              <div style={{fontSize:26,fontWeight:700,color:lucro>=0?t.accent:'#A32D2D'}}>{fmt(lucro)}</div>
               <div style={{fontSize:11,color:t.textSoft,marginTop:4}}>faturamento − despesas</div>
             </div>
             <div style={s.bigCard(false)}>
-              <div style={s.bigLabel}>Ticket médio</div>
-              <div style={s.bigValue()}>{fmt(ticket)}</div>
+              <div style={{fontSize:12,color:t.textSoft,marginBottom:6}}>Ticket médio</div>
+              <div style={{fontSize:26,fontWeight:700,color:t.text}}>{fmt(ticket)}</div>
               <div style={{fontSize:11,color:t.textSoft,marginTop:4}}>por serviço concluído</div>
             </div>
           </div>
@@ -104,18 +109,21 @@ export default function Dashboard() {
           {/* GRÁFICO RECEITA POR MÊS */}
           <div style={s.card}>
             <div style={s.cardHead}><span style={s.cardTitle}>Receita por mês</span><Link href="/faturamento" style={s.linkBtn}>Ver faturamento</Link></div>
-            <div style={{padding:18}}>
-              {meses.length===0 && <div style={{fontSize:13,color:t.textSoft}}>Sem dados ainda.</div>}
-              <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                {meses.map(([mes,val])=>(
-                  <div key={mes} style={{display:'flex',alignItems:'center',gap:12,fontSize:12}}>
-                    <span style={{width:60,color:t.textSoft,flexShrink:0}}>{mes.slice(5)}/{mes.slice(2,4)}</span>
-                    <div style={{flex:1,height:10,background:t.bgSidebar,borderRadius:99,overflow:'hidden'}}>
-                      <div style={{height:'100%',background:t.accent,borderRadius:99,width:Math.round(val/maxVal*100)+'%'}}/>
+            <div style={{padding:'16px 18px'}}>
+              {(stats.meses||[]).length===0 && <div style={{fontSize:13,color:t.textSoft}}>Sem dados ainda.</div>}
+              <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                {(stats.meses||[]).map(([mes,val])=>{
+                  const nomeMes = new Date(mes+'-01').toLocaleDateString('pt-BR',{month:'short',year:'2-digit'})
+                  return (
+                    <div key={mes} style={{display:'flex',alignItems:'center',gap:12,fontSize:12}}>
+                      <span style={{width:65,color:t.textSoft,flexShrink:0,textTransform:'capitalize'}}>{nomeMes}</span>
+                      <div style={{flex:1,height:12,background:t.bgSidebar,borderRadius:99,overflow:'hidden'}}>
+                        <div style={{height:'100%',background:t.accent,borderRadius:99,width:Math.round(val/maxVal*100)+'%',transition:'width .4s'}}/>
+                      </div>
+                      <span style={{width:100,textAlign:'right',fontWeight:600,color:t.text}}>{fmt(val)}</span>
                     </div>
-                    <span style={{width:90,textAlign:'right',fontWeight:600,color:t.text}}>{fmt(val)}</span>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -135,7 +143,7 @@ export default function Dashboard() {
                 </tr>
               ))}</tbody>
             </table>
-            {agendamentos.length===0 && <div style={{padding:20,textAlign:'center',color:t.textSoft,fontSize:13}}>Nenhum agendamento.</div>}
+            {agendamentos.length===0&&<div style={{padding:20,textAlign:'center',color:t.textSoft,fontSize:13}}>Nenhum agendamento.</div>}
           </div>
         </>
       ) : (
@@ -158,7 +166,7 @@ export default function Dashboard() {
               </div>
             </div>
           ))}
-          {agendamentos.length===0 && <div style={{fontSize:13,color:t.textSoft,padding:16,textAlign:'center'}}>Nenhum agendamento.</div>}
+          {agendamentos.length===0&&<div style={{fontSize:13,color:t.textSoft,padding:16,textAlign:'center'}}>Nenhum agendamento.</div>}
         </>
       )}
     </Layout>
