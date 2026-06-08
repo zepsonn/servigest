@@ -10,9 +10,9 @@ const STATUS_COLORS = {
 }
 function Badge({s}){ const [bg,c]=STATUS_COLORS[s]||['#F1EFE8','#5F5E5A']; return <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:500,background:bg,color:c}}>{(s||'').replace('_',' ')}</span>}
 
-const FORM0 = {cliente_id:'',cliente_nome:'',cliente_telefone:'',cliente_endereco:'',produto:'',servico:'',descricao:'',valor:0,status:'em_andamento',data_entrada:new Date().toISOString().split('T')[0],data_conclusao:'',tecnico_id:'',observacoes:''}
+const FORM0 = {agendamento_id:'',cliente_id:'',cliente_nome:'',cliente_telefone:'',cliente_endereco:'',produto:'',servico:'',descricao:'',valor:0,status:'em_andamento',data_entrada:new Date().toISOString().split('T')[0],data_conclusao:'',tecnico_id:'',observacoes:''}
 
-// ===== COMPONENTES FORA DO COMPONENTE PRINCIPAL (corrige bug de foco) =====
+// componentes fora (corrige bug de foco)
 function Modal({title,onClose,children,t,wide}){
   return <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.55)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center'}}>
     <div style={{background:t.bgCard,borderRadius:12,padding:24,width:wide?580:460,maxWidth:'96vw',maxHeight:'92vh',overflow:'auto',border:'1px solid '+t.border}}>
@@ -28,22 +28,21 @@ function FG({label,value,onChange,t,textarea,type,placeholder}){
 }
 function BtnRow({onCancel,onSave,t,label}){return <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:16}}><button style={{padding:'7px 14px',borderRadius:8,background:'transparent',color:t.textSoft,border:'1px solid '+t.border,fontSize:13,cursor:'pointer',fontFamily:'inherit'}} onClick={onCancel}>Cancelar</button><button style={{padding:'7px 14px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:13,cursor:'pointer',fontFamily:'inherit',fontWeight:500}} onClick={onSave}>{label||'Salvar'}</button></div>}
 
-function FormOS({f,setF,target,t,clientes,tecnicos,selCli,onCadastrarCliente}) {
+function FormOS({f,setF,target,t,agendamentos,tecnicos,selAg}) {
   const row2={display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}
   const inp={width:'100%',padding:'7px 10px',borderRadius:8,border:'1px solid '+t.border,fontSize:13,fontFamily:'inherit',background:t.bgInput,color:t.text}
   const lbl={display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}
   return <>
-    <Sec label="CLIENTE" t={t}/>
-    <div style={{marginBottom:12}}>
-      <label style={lbl}>Cliente cadastrado</label>
-      <div style={{display:'flex',gap:8}}>
-        <select style={{...inp,flex:1}} value={f.cliente_id||''} onChange={e=>selCli(e.target.value,target)}>
-          <option value="">— Selecione ou digite abaixo —</option>
-          {clientes.map(c=><option key={c.id} value={c.id}>{c.nome} · {c.telefone}</option>)}
+    <Sec label="CLIENTE / AGENDAMENTO" t={t}/>
+    {target==='novo' && (
+      <div style={{marginBottom:12}}>
+        <label style={lbl}>Puxar de um agendamento</label>
+        <select style={inp} value={f.agendamento_id||''} onChange={e=>selAg(e.target.value)}>
+          <option value="">— Selecione um agendamento ou preencha abaixo —</option>
+          {agendamentos.map(a=><option key={a.id} value={a.id}>{(a.cliente_nome||a.clientes?.nome||'Sem nome')}{a.cliente_telefone?' · '+a.cliente_telefone:''}{a.servico&&a.servico!=='Cliente migrado'?' · '+a.servico:''}</option>)}
         </select>
-        {target==='novo' && <button type="button" style={{padding:'0 14px',borderRadius:8,border:'1px solid '+t.accent,background:t.accentSoft,color:t.accentDark,fontSize:12,cursor:'pointer',fontWeight:600,whiteSpace:'nowrap'}} onClick={onCadastrarCliente}>+ Novo cliente</button>}
       </div>
-    </div>
+    )}
     <div style={row2}>
       <FG label="Nome" value={f.cliente_nome||''} onChange={v=>setF({...f,cliente_nome:v})} t={t}/>
       <FG label="Telefone" value={f.cliente_telefone||''} onChange={v=>setF({...f,cliente_telefone:v})} t={t}/>
@@ -78,15 +77,12 @@ function FormOS({f,setF,target,t,clientes,tecnicos,selCli,onCadastrarCliente}) {
   </>
 }
 
-// ===== COMPONENTE PRINCIPAL =====
 export default function OS() {
   const [lista, setLista] = useState([])
   const [busca, setBusca] = useState('')
   const [modal, setModal] = useState(false)
   const [editModal, setEditModal] = useState(null)
-  const [cliModal, setCliModal] = useState(false)
-  const [cliForm, setCliForm] = useState({nome:'',telefone:'',whatsapp:'',email:'',cpf_cnpj:'',endereco:''})
-  const [clientes, setClientes] = useState([])
+  const [agendamentos, setAgendamentos] = useState([])
   const [tecnicos, setTecnicos] = useState([])
   const [user, setUser] = useState(null)
   const [form, setForm] = useState(FORM0)
@@ -96,7 +92,7 @@ export default function OS() {
 
   useEffect(()=>{
     const u = JSON.parse(localStorage.getItem('servigest_user')||'{}')
-    setUser(u); loadOS(); loadClientes()
+    setUser(u); loadOS(); loadAgendamentos()
     supabase.from('usuarios').select('id,nome').eq('ativo',true).order('nome').then(({data})=>setTecnicos(data||[]))
   },[])
 
@@ -104,32 +100,36 @@ export default function OS() {
     const { data } = await supabase.from('ordens_servico').select('*, usuarios(nome)').order('criado_em',{ascending:false})
     setLista(data||[])
   }
-  async function loadClientes() {
-    const { data } = await supabase.from('clientes').select('id,nome,telefone,endereco').eq('ativo',true).order('nome')
-    setClientes(data||[])
+  async function loadAgendamentos() {
+    const { data } = await supabase.from('agendamentos').select('*, clientes(nome)').order('criado_em',{ascending:false})
+    setAgendamentos(data||[])
   }
 
-  function selCli(id, target) {
-    const c = clientes.find(x=>x.id===id)
-    const patch = c ? {cliente_id:c.id,cliente_nome:c.nome,cliente_telefone:c.telefone||'',cliente_endereco:c.endereco||''} : {cliente_id:''}
-    if (target==='novo') setForm(prev=>({...prev,...patch}))
-    else setEditForm(prev=>({...prev,...patch}))
-  }
-
-  async function salvarCliente() {
-    if (!cliForm.nome) { alert('Digite o nome do cliente'); return }
-    const { data, error } = await supabase.from('clientes').insert([cliForm]).select().single()
-    if (error) { alert('Erro ao cadastrar cliente'); return }
-    await loadClientes()
-    // preenche a OS com o cliente recem-criado
-    setForm(prev=>({...prev, cliente_id:data.id, cliente_nome:data.nome, cliente_telefone:data.telefone||'', cliente_endereco:data.endereco||''}))
-    setCliForm({nome:'',telefone:'',whatsapp:'',email:'',cpf_cnpj:'',endereco:''})
-    setCliModal(false)
+  function selAg(id) {
+    const a = agendamentos.find(x=>x.id===id)
+    if (!a) { setForm(prev=>({...prev,agendamento_id:''})); return }
+    setForm(prev=>({
+      ...prev,
+      agendamento_id:a.id,
+      cliente_id:a.cliente_id||'',
+      cliente_nome:a.cliente_nome||a.clientes?.nome||'',
+      cliente_telefone:a.cliente_telefone||'',
+      cliente_endereco:a.cliente_endereco||'',
+      servico:(a.servico&&a.servico!=='Cliente migrado')?a.servico:prev.servico,
+      valor:a.valor||prev.valor,
+    }))
   }
 
   async function salvar() {
     if (!form.data_entrada) { alert('Preencha a data'); return }
-    await supabase.from('ordens_servico').insert([{...form,valor:Number(form.valor)||0,cliente_id:form.cliente_id||null,tecnico_id:form.tecnico_id||null,data_conclusao:form.data_conclusao||null}])
+    await supabase.from('ordens_servico').insert([{
+      cliente_id:form.cliente_id||null,cliente_nome:form.cliente_nome,
+      cliente_telefone:form.cliente_telefone,cliente_endereco:form.cliente_endereco,
+      produto:form.produto,servico:form.servico,descricao:form.descricao,
+      valor:Number(form.valor)||0,status:form.status,
+      data_entrada:form.data_entrada,data_conclusao:form.data_conclusao||null,
+      tecnico_id:form.tecnico_id||null,observacoes:form.observacoes,
+    }])
     setModal(false); setForm(FORM0); loadOS()
   }
   async function salvarEdicao() {
@@ -201,20 +201,13 @@ export default function OS() {
       </div>
 
       {modal&&<Modal title="Nova OS" onClose={()=>{setModal(false);setForm(FORM0)}} t={t} wide>
-        <FormOS f={form} setF={setForm} target="novo" t={t} clientes={clientes} tecnicos={tecnicos} selCli={selCli} onCadastrarCliente={()=>setCliModal(true)}/>
+        <FormOS f={form} setF={setForm} target="novo" t={t} agendamentos={agendamentos} tecnicos={tecnicos} selAg={selAg}/>
         <BtnRow onCancel={()=>{setModal(false);setForm(FORM0)}} onSave={salvar} t={t} label="Salvar OS"/>
       </Modal>}
 
       {editModal&&<Modal title={'Editar OS #'+editModal.numero} onClose={()=>setEditModal(null)} t={t} wide>
-        <FormOS f={editForm} setF={setEditForm} target="edit" t={t} clientes={clientes} tecnicos={tecnicos} selCli={selCli} onCadastrarCliente={()=>{}}/>
+        <FormOS f={editForm} setF={setEditForm} target="edit" t={t} agendamentos={agendamentos} tecnicos={tecnicos} selAg={selAg}/>
         <BtnRow onCancel={()=>setEditModal(null)} onSave={salvarEdicao} t={t} label="Salvar alterações"/>
-      </Modal>}
-
-      {cliModal&&<Modal title="Cadastrar novo cliente" onClose={()=>setCliModal(false)} t={t}>
-        {[['nome','Nome completo *'],['telefone','Telefone'],['whatsapp','WhatsApp'],['email','E-mail'],['cpf_cnpj','CPF / CNPJ'],['endereco','Endereço']].map(([k,l])=>(
-          <FG key={k} label={l} value={cliForm[k]} onChange={v=>setCliForm({...cliForm,[k]:v})} t={t}/>
-        ))}
-        <BtnRow onCancel={()=>setCliModal(false)} onSave={salvarCliente} t={t} label="Cadastrar e usar na OS"/>
       </Modal>}
     </Layout>
   )
