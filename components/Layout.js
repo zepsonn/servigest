@@ -27,7 +27,6 @@ export default function Layout({ children, title = 'Dashboard' }) {
 
   const navGestor = [
     { href: '/dashboard', icon: 'DASH', label: 'Dashboard' },
-    { href: '/clientes', icon: 'CLI', label: 'Clientes' },
     { href: '/os', icon: 'OS', label: 'Ordens de Servico' },
     { href: '/agendamentos', icon: 'AGD', label: 'Agendamentos' },
     { href: '/recibo', icon: 'REC', label: 'Recibos' },
@@ -38,9 +37,8 @@ export default function Layout({ children, title = 'Dashboard' }) {
     { href: '/dashboard', icon: 'AGD', label: 'Meus Servicos' },
     { href: '/os', icon: 'OS', label: 'Ordens de Servico' },
     { href: '/historico', icon: 'HIST', label: 'Historico' },
-    { href: '/clientes', icon: 'CLI', label: 'Clientes' },
   ]
-  const emoji = {DASH:'\u{1F4CA}',CLI:'\u{1F465}',OS:'\u{1F527}',AGD:'\u{1F4C5}',REC:'\u{1F9FE}',FAT:'\u{1F4B0}',FUN:'\u{1FAAA}',HIST:'\u{1F550}'}
+  const emoji = {DASH:'\u{1F4CA}',OS:'\u{1F527}',AGD:'\u{1F4C5}',REC:'\u{1F9FE}',FAT:'\u{1F4B0}',FUN:'\u{1FAAA}',HIST:'\u{1F550}'}
   const nav = isGestor ? navGestor : navFunc
 
   const s = {
@@ -85,7 +83,6 @@ export default function Layout({ children, title = 'Dashboard' }) {
             </Link>
           ))}
         </nav>
-
         <button style={s.themeBtn} onClick={()=>setTemaAberto(!temaAberto)}>
           {t.dark ? '\u{1F319}' : '\u2600\uFE0F'} Tema {temaAberto ? '\u25B2' : '\u25BC'}
         </button>
@@ -104,7 +101,6 @@ export default function Layout({ children, title = 'Dashboard' }) {
             </div>
           </div>
         )}
-
         <button style={s.logoutBtn} onClick={logout}>{'\u21A9'} Sair</button>
       </div>
       <div style={s.main}>
