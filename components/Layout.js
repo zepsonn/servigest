@@ -22,6 +22,7 @@ function Icon({name, size=18}) {
   const paths = {
     dashboard:<><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></>,
     os:<><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></>,
+    importar:<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></>,
     estoque:<><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></>,
     vendas:<><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></>,
     recibo:<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>,
@@ -130,15 +131,14 @@ export default function Layout({ children, title = 'Dashboard' }) {
   }, [])
 
   useEffect(() => { setMenuAberto(false) }, [router.pathname])
-
   function logout() { localStorage.removeItem('servigest_user'); router.push('/') }
-
   if (!user) return null
   const isGestor = user.role === 'gestor'
 
   const navGestor = [
     { href: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
     { href: '/os', icon: 'os', label: 'Ordens de Servico' },
+    { href: '/importar', icon: 'importar', label: 'Importar via WhatsApp' },
     { href: '/estoque', icon: 'estoque', label: 'Estoque' },
     { href: '/vendas', icon: 'vendas', label: 'Vendas' },
     { href: '/recibo', icon: 'recibo', label: 'Recibos' },
@@ -170,7 +170,6 @@ export default function Layout({ children, title = 'Dashboard' }) {
             </button>
           </div>
         </div>
-
         {menuAberto&&(
           <div style={{position:'fixed',inset:0,zIndex:99}} onClick={()=>setMenuAberto(false)}>
             <div style={{position:'absolute',top:0,right:0,width:240,height:'100%',background:t.bgSidebar,borderLeft:'1px solid '+t.border,padding:'16px 10px',display:'flex',flexDirection:'column'}} onClick={e=>e.stopPropagation()}>
@@ -190,7 +189,6 @@ export default function Layout({ children, title = 'Dashboard' }) {
             </div>
           </div>
         )}
-
         {temaAberto&&(
           <div style={{position:'fixed',inset:0,zIndex:98,display:'flex',alignItems:'flex-end',justifyContent:'center',background:'rgba(0,0,0,.4)'}} onClick={()=>setTemaAberto(false)}>
             <div style={{background:t.bgCard,borderRadius:'16px 16px 0 0',padding:20,width:'100%',border:'1px solid '+t.border}} onClick={e=>e.stopPropagation()}>
@@ -207,17 +205,15 @@ export default function Layout({ children, title = 'Dashboard' }) {
             </div>
           </div>
         )}
-
         <div style={{flex:1,padding:'16px 14px',paddingBottom:80}}>
           {isGestor&&(
             <div style={{display:'flex',gap:8,marginBottom:14}}>
               <Link href="/os" style={{flex:1,padding:'8px',borderRadius:8,border:'1px solid '+t.border,fontSize:12,fontWeight:500,color:t.text,background:t.bgCard,textAlign:'center',display:'block'}}>+ Nova OS</Link>
-              <Link href="/recibo" style={{flex:1,padding:'8px',borderRadius:8,background:t.accent,color:'#fff',fontSize:12,fontWeight:500,textAlign:'center',display:'block'}}>Recibo</Link>
+              <Link href="/importar" style={{flex:1,padding:'8px',borderRadius:8,background:'#25D366',color:'#fff',fontSize:12,fontWeight:500,textAlign:'center',display:'block'}}>WhatsApp</Link>
             </div>
           )}
           {children}
         </div>
-
         <div style={{position:'fixed',bottom:0,left:0,right:0,background:t.bgCard,borderTop:'1px solid '+t.border,display:'flex',zIndex:50}}>
           {navMobile.map(item=>(
             <Link key={item.href} href={item.href} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',padding:'8px 4px',fontSize:10,color:router.pathname===item.href?t.accent:t.textSoft,borderTop:router.pathname===item.href?'2px solid '+t.accent:'2px solid transparent',gap:3}}>
@@ -244,9 +240,9 @@ export default function Layout({ children, title = 'Dashboard' }) {
     content:{padding:'20px 24px',flex:1,overflow:'auto'},
     btnSm:{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 12px',borderRadius:8,border:'1px solid '+t.border,fontSize:12,fontWeight:500,color:t.text,background:t.bgCard},
     btnPrimary:{background:t.accent,color:'#fff',border:'1px solid '+t.accent},
-    popover:{margin:'4px 10px 0',padding:12,borderRadius:10,border:'1px solid '+t.border,background:t.bgCard},
     opt:(active)=>({flex:1,padding:'5px 0',borderRadius:6,border:'1px solid '+(active?t.accent:t.border),background:active?t.accentSoft:'transparent',color:active?t.accentDark:t.textSoft,fontSize:11,cursor:'pointer',fontWeight:active?600:400,textAlign:'center'}),
     colorDot:(color,active)=>({width:26,height:26,borderRadius:'50%',background:color,cursor:'pointer',border:active?'3px solid '+t.text:'2px solid '+t.border}),
+    popover:{margin:'4px 10px 0',padding:12,borderRadius:10,border:'1px solid '+t.border,background:t.bgCard},
   }
 
   return (
@@ -281,6 +277,7 @@ export default function Layout({ children, title = 'Dashboard' }) {
           <div style={{fontSize:16,fontWeight:500,color:t.text}}>{title}</div>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
             {isGestor&&<NotificacoesSino t={t}/>}
+            {isGestor&&<Link href="/importar" style={{...s.btnSm,background:'#25D366',color:'#fff',border:'none'}}>WhatsApp</Link>}
             {isGestor&&<Link href="/os" style={s.btnSm}>+ Nova OS</Link>}
             {isGestor&&<Link href="/recibo" style={{...s.btnSm,...s.btnPrimary}}><Icon name="recibo" size={14}/> Recibo</Link>}
           </div>
