@@ -27,7 +27,7 @@ export default function Agendamentos() {
   },[])
 
   async function loadAgendamentos(u) {
-    let q = supabase.from('agendamentos').select('*, clientes(nome,telefone,endereco), usuarios(nome)').order('data').order('hora')
+    let q = supabase.from('agendamentos').select('*, clientes(nome,telefone,endereco), usuarios(nome)').order('cliente_nome')
     if (u.role !== 'gestor') q = q.eq('funcionario_id', u.id)
     const { data } = await q; setAgendamentos(data||[])
   }

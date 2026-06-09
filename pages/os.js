@@ -97,7 +97,7 @@ export default function OS() {
   },[])
 
   async function loadOS() {
-    const { data } = await supabase.from('ordens_servico').select('*, usuarios(nome)').order('criado_em',{ascending:false})
+    const { data } = await supabase.from('ordens_servico').select('*, usuarios(nome)').order('cliente_nome')
     setLista(data||[])
   }
   async function loadAgendamentos() {
