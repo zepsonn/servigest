@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { useTheme } from '../lib/theme'
@@ -22,7 +22,6 @@ function Icon({name, size=18}) {
   const paths = {
     dashboard:<><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></>,
     os:<><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></>,
-    agenda:<><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>,
     estoque:<><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></>,
     vendas:<><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></>,
     recibo:<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>,
@@ -36,16 +35,14 @@ function Icon({name, size=18}) {
     sair:<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>,
     menu:<><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></>,
     fechar:<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
-    editar:<><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
   }
   return <svg {...props}>{paths[name]}</svg>
 }
 
-function NotificacoesSino({t, isMobile}) {
+function NotificacoesSino({t}) {
   const [aberto, setAberto] = useState(false)
   const [notifs, setNotifs] = useState([])
   const [naoLidas, setNaoLidas] = useState(0)
-  const ref = useRef(null)
 
   useEffect(()=>{
     carregarNotifs()
@@ -53,72 +50,62 @@ function NotificacoesSino({t, isMobile}) {
     return () => clearInterval(interval)
   },[])
 
-  useEffect(()=>{
-    function handleClick(e){ if(ref.current && !ref.current.contains(e.target)) setAberto(false) }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  },[])
-
   async function carregarNotifs() {
-    const hoje = new Date()
-    const seteDias = new Date(hoje - 7*24*60*60*1000).toISOString()
-    const [{ data: os }, { data: vendas }, { data: ag }] = await Promise.all([
-      supabase.from('ordens_servico').select('id,numero,cliente_nome,valor,status,criado_em').gte('criado_em', seteDias).order('criado_em',{ascending:false}).limit(5),
-      supabase.from('vendas').select('id,numero,cliente_nome,total_venda,criado_em').gte('criado_em', seteDias).order('criado_em',{ascending:false}).limit(5),
-      supabase.from('agendamentos').select('id,cliente_nome,servico,data,criado_em').gte('criado_em', seteDias).order('criado_em',{ascending:false}).limit(5),
+    const seteDias = new Date(Date.now() - 7*24*60*60*1000).toISOString()
+    const [{data:os},{data:vendas}] = await Promise.all([
+      supabase.from('ordens_servico').select('id,numero,cliente_nome,valor,status,criado_em').gte('criado_em',seteDias).order('criado_em',{ascending:false}).limit(5),
+      supabase.from('vendas').select('id,numero,cliente_nome,total_venda,criado_em').gte('criado_em',seteDias).order('criado_em',{ascending:false}).limit(5),
     ])
     const fmt = n => Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
     const lista = [
-      ...(os||[]).map(o=>({id:'os'+o.id, tipo:'OS', icon:'os', cor:'#185FA5', titulo:'Nova OS #'+o.numero, desc:(o.cliente_nome||'Cliente')+(o.valor?' · '+fmt(o.valor):''), tempo:o.criado_em, lida:false})),
-      ...(vendas||[]).map(v=>({id:'v'+v.id, tipo:'Venda', icon:'vendas', cor:'#3B6D11', titulo:'Venda #'+v.numero+' · '+fmt(v.total_venda), desc:(v.cliente_nome||'Cliente avulso'), tempo:v.criado_em, lida:false})),
-      ...(ag||[]).map(a=>({id:'ag'+a.id, tipo:'Agendamento', icon:'agenda', cor:'#854F0B', titulo:'Agendamento: '+(a.cliente_nome||'Cliente'), desc:(a.servico||'')+(a.data?' · '+new Date(a.data+'T12:00').toLocaleDateString('pt-BR'):''), tempo:a.criado_em, lida:false})),
+      ...(os||[]).map(o=>({id:'os'+o.id,titulo:'Nova OS #'+o.numero,desc:(o.cliente_nome||'Cliente')+(o.valor?' · '+fmt(o.valor):''),tempo:o.criado_em})),
+      ...(vendas||[]).map(v=>({id:'v'+v.id,titulo:'Venda #'+v.numero+' · '+fmt(v.total_venda),desc:(v.cliente_nome||'Avulso'),tempo:v.criado_em})),
     ].sort((a,b)=>new Date(b.tempo)-new Date(a.tempo)).slice(0,10)
-
     const lidas = JSON.parse(localStorage.getItem('notifs_lidas')||'[]')
-    const comLida = lista.map(n=>({...n, lida:lidas.includes(n.id)}))
+    const comLida = lista.map(n=>({...n,lida:lidas.includes(n.id)}))
     setNotifs(comLida)
     setNaoLidas(comLida.filter(n=>!n.lida).length)
   }
 
-  function marcarTodasLidas() {
+  function marcarLidas() {
     const ids = notifs.map(n=>n.id)
     localStorage.setItem('notifs_lidas', JSON.stringify(ids))
     setNotifs(notifs.map(n=>({...n,lida:true})))
     setNaoLidas(0)
   }
 
-  function tempoRelativo(iso) {
+  function tempoRel(iso) {
     const diff = Date.now() - new Date(iso).getTime()
     const min = Math.floor(diff/60000)
-    if(min < 1) return 'Agora'
-    if(min < 60) return min+'min'
+    if(min<1) return 'Agora'
+    if(min<60) return min+'min'
     const h = Math.floor(min/60)
-    if(h < 24) return h+'h'
+    if(h<24) return h+'h'
     return Math.floor(h/24)+'d'
   }
 
   return (
-    <div ref={ref} style={{position:'relative'}}>
-      <button onClick={()=>{setAberto(!aberto);if(!aberto)marcarTodasLidas()}} style={{position:'relative',background:'none',border:'none',cursor:'pointer',color:t.textSoft,display:'flex',alignItems:'center',padding:6}}>
+    <div style={{position:'relative'}}>
+      <button onClick={()=>{setAberto(!aberto);if(!aberto)marcarLidas()}} style={{position:'relative',background:'none',border:'none',cursor:'pointer',color:t.textSoft,display:'flex',alignItems:'center',padding:6}}>
         <Icon name="sino" size={20}/>
-        {naoLidas>0&&<span style={{position:'absolute',top:0,right:0,background:'#E53E3E',color:'#fff',borderRadius:'50%',width:16,height:16,fontSize:10,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}>{naoLidas>9?'9+':naoLidas}</span>}
+        {naoLidas>0&&<span style={{position:'absolute',top:0,right:0,background:'#E53E3E',color:'#fff',borderRadius:'50%',width:16,height:16,fontSize:10,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center'}}>{naoLidas>9?'9+':naoLidas}</span>}
       </button>
       {aberto&&(
-        <div style={{position:'absolute',right:0,top:'calc(100% + 8px)',width:320,background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,.15)',zIndex:200,overflow:'hidden'}}>
+        <div style={{position:'absolute',right:0,top:'calc(100% + 8px)',width:300,background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,.15)',zIndex:200,overflow:'hidden'}}>
           <div style={{padding:'12px 16px',borderBottom:'1px solid '+t.borderSoft,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <span style={{fontSize:13,fontWeight:600,color:t.text}}>Notificações</span>
-            <button onClick={marcarTodasLidas} style={{fontSize:11,color:t.textSoft,background:'none',border:'none',cursor:'pointer'}}>Marcar tudo como lido</button>
+            <button onClick={marcarLidas} style={{fontSize:11,color:t.textSoft,background:'none',border:'none',cursor:'pointer'}}>Marcar lido</button>
           </div>
-          <div style={{maxHeight:360,overflow:'auto'}}>
+          <div style={{maxHeight:340,overflow:'auto'}}>
             {notifs.length===0&&<div style={{padding:24,textAlign:'center',fontSize:13,color:t.textSoft}}>Nenhuma notificação.</div>}
             {notifs.map(n=>(
-              <div key={n.id} style={{padding:'10px 16px',borderBottom:'1px solid '+t.borderSoft,background:n.lida?'transparent':t.accentSoft+'33',display:'flex',gap:10,alignItems:'flex-start'}}>
-                <div style={{width:8,height:8,borderRadius:'50%',background:n.lida?'transparent':t.accent,flexShrink:0,marginTop:5}}/>
+              <div key={n.id} style={{padding:'10px 16px',borderBottom:'1px solid '+t.borderSoft,background:n.lida?'transparent':t.accentSoft+'22',display:'flex',gap:8,alignItems:'flex-start'}}>
+                <div style={{width:8,height:8,borderRadius:'50%',background:n.lida?'transparent':t.accent,flexShrink:0,marginTop:4}}/>
                 <div style={{flex:1}}>
-                  <div style={{fontSize:12,fontWeight:500,color:t.text,marginBottom:2}}>{n.titulo}</div>
+                  <div style={{fontSize:12,fontWeight:500,color:t.text,marginBottom:1}}>{n.titulo}</div>
                   <div style={{fontSize:11,color:t.textSoft}}>{n.desc}</div>
                 </div>
-                <span style={{fontSize:10,color:t.textSoft,flexShrink:0}}>{tempoRelativo(n.tempo)}</span>
+                <span style={{fontSize:10,color:t.textSoft,flexShrink:0}}>{tempoRel(n.tempo)}</span>
               </div>
             ))}
           </div>
@@ -151,8 +138,7 @@ export default function Layout({ children, title = 'Dashboard' }) {
 
   const navGestor = [
     { href: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
-    { href: '/os', icon: 'os', label: 'OS' },
-    { href: '/agendamentos', icon: 'agenda', label: 'Agenda' },
+    { href: '/os', icon: 'os', label: 'Ordens de Servico' },
     { href: '/estoque', icon: 'estoque', label: 'Estoque' },
     { href: '/vendas', icon: 'vendas', label: 'Vendas' },
     { href: '/recibo', icon: 'recibo', label: 'Recibos' },
@@ -161,8 +147,8 @@ export default function Layout({ children, title = 'Dashboard' }) {
     { href: '/funcionarios', icon: 'funcionarios', label: 'Equipe' },
   ]
   const navFunc = [
-    { href: '/dashboard', icon: 'agenda', label: 'Servicos' },
-    { href: '/os', icon: 'os', label: 'OS' },
+    { href: '/dashboard', icon: 'dashboard', label: 'Meus Servicos' },
+    { href: '/os', icon: 'os', label: 'Ordens de Servico' },
     { href: '/historico', icon: 'historico', label: 'Historico' },
   ]
   const nav = isGestor ? navGestor : navFunc
@@ -170,15 +156,15 @@ export default function Layout({ children, title = 'Dashboard' }) {
 
   if (isMobile) {
     return (
-      <div style={{display:'flex',flexDirection:'column',minHeight:'100vh',background:t.bg,color:t.text,fontFamily:'inherit'}}>
+      <div style={{display:'flex',flexDirection:'column',minHeight:'100vh',background:t.bg,color:t.text}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 16px',background:t.bgCard,borderBottom:'1px solid '+t.border,position:'sticky',top:0,zIndex:50}}>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
             <img src={LOGO_SRC} alt="logo" style={{width:32,height:32,borderRadius:6,objectFit:'contain',background:'#fff'}}/>
             <div><div style={{fontSize:13,fontWeight:700,color:t.text,lineHeight:1.1}}>Top Eletro</div><div style={{fontSize:10,color:t.accent,fontWeight:600}}>Inova</div></div>
           </div>
-          <div style={{fontSize:14,fontWeight:500,color:t.text}}>{title}</div>
+          <div style={{fontSize:13,fontWeight:500,color:t.text}}>{title}</div>
           <div style={{display:'flex',alignItems:'center',gap:4}}>
-            {isGestor&&<NotificacoesSino t={t} isMobile={isMobile}/>}
+            {isGestor&&<NotificacoesSino t={t}/>}
             <button style={{background:'none',border:'none',cursor:'pointer',color:t.textSoft,padding:4,display:'flex'}} onClick={()=>setMenuAberto(!menuAberto)}>
               <Icon name={menuAberto?'fechar':'menu'} size={22}/>
             </button>
@@ -188,9 +174,8 @@ export default function Layout({ children, title = 'Dashboard' }) {
         {menuAberto&&(
           <div style={{position:'fixed',inset:0,zIndex:99}} onClick={()=>setMenuAberto(false)}>
             <div style={{position:'absolute',top:0,right:0,width:240,height:'100%',background:t.bgSidebar,borderLeft:'1px solid '+t.border,padding:'16px 10px',display:'flex',flexDirection:'column'}} onClick={e=>e.stopPropagation()}>
-              <div style={{fontSize:13,fontWeight:600,color:t.textSoft,marginBottom:12,paddingLeft:8}}>Menu</div>
               {nav.map(item=>(
-                <Link key={item.href} href={item.href} style={{display:'flex',alignItems:'center',gap:10,padding:'10px',borderRadius:8,fontSize:14,color:router.pathname===item.href?t.accent:t.textSoft,background:router.pathname===item.href?t.bgCard:'transparent',fontWeight:router.pathname===item.href?500:400,marginBottom:2}}>
+                <Link key={item.href} href={item.href} style={{display:'flex',alignItems:'center',gap:10,padding:'10px',borderRadius:8,fontSize:14,color:router.pathname===item.href?t.accent:t.textSoft,background:router.pathname===item.href?t.bgCard:'transparent',marginBottom:2}}>
                   <Icon name={item.icon}/> {item.label}
                 </Link>
               ))}
@@ -208,14 +193,13 @@ export default function Layout({ children, title = 'Dashboard' }) {
 
         {temaAberto&&(
           <div style={{position:'fixed',inset:0,zIndex:98,display:'flex',alignItems:'flex-end',justifyContent:'center',background:'rgba(0,0,0,.4)'}} onClick={()=>setTemaAberto(false)}>
-            <div style={{background:t.bgCard,borderRadius:'16px 16px 0 0',padding:20,width:'100%',maxWidth:480,border:'1px solid '+t.border}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:t.bgCard,borderRadius:'16px 16px 0 0',padding:20,width:'100%',border:'1px solid '+t.border}} onClick={e=>e.stopPropagation()}>
               <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',color:t.textSoft,marginBottom:8}}>Aparencia</div>
               <div style={{display:'flex',gap:8,marginBottom:16}}>
                 {[['claro','Claro'],['escuro','Escuro'],['auto','Auto']].map(([v,l])=>(
-                  <div key={v} style={{flex:1,padding:'8px 0',borderRadius:8,border:'1px solid '+(mode===v?t.accent:t.border),background:mode===v?t.accentSoft:'transparent',color:mode===v?t.accentDark:t.textSoft,fontSize:13,cursor:'pointer',fontWeight:mode===v?600:400,textAlign:'center'}} onClick={()=>{changeMode(v);setTemaAberto(false)}}>{l}</div>
+                  <div key={v} style={{flex:1,padding:'8px',borderRadius:8,border:'1px solid '+(mode===v?t.accent:t.border),background:mode===v?t.accentSoft:'transparent',color:mode===v?t.accentDark:t.textSoft,fontSize:13,cursor:'pointer',textAlign:'center'}} onClick={()=>{changeMode(v);setTemaAberto(false)}}>{l}</div>
                 ))}
               </div>
-              <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',color:t.textSoft,marginBottom:8}}>Cor de destaque</div>
               <div style={{display:'flex',gap:16}}>
                 <div style={{width:36,height:36,borderRadius:'50%',background:'#1D9E75',cursor:'pointer',border:accent==='verde'?'3px solid '+t.text:'2px solid '+t.border}} onClick={()=>{changeAccent('verde');setTemaAberto(false)}}/>
                 <div style={{width:36,height:36,borderRadius:'50%',background:'#2563EB',cursor:'pointer',border:accent==='azul'?'3px solid '+t.text:'2px solid '+t.border}} onClick={()=>{changeAccent('azul');setTemaAberto(false)}}/>
@@ -236,7 +220,7 @@ export default function Layout({ children, title = 'Dashboard' }) {
 
         <div style={{position:'fixed',bottom:0,left:0,right:0,background:t.bgCard,borderTop:'1px solid '+t.border,display:'flex',zIndex:50}}>
           {navMobile.map(item=>(
-            <Link key={item.href} href={item.href} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',padding:'8px 4px',fontSize:10,color:router.pathname===item.href?t.accent:t.textSoft,fontWeight:router.pathname===item.href?600:400,borderTop:router.pathname===item.href?'2px solid '+t.accent:'2px solid transparent',gap:3}}>
+            <Link key={item.href} href={item.href} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',padding:'8px 4px',fontSize:10,color:router.pathname===item.href?t.accent:t.textSoft,borderTop:router.pathname===item.href?'2px solid '+t.accent:'2px solid transparent',gap:3}}>
               <Icon name={item.icon} size={20}/>{item.label}
             </Link>
           ))}
@@ -245,12 +229,11 @@ export default function Layout({ children, title = 'Dashboard' }) {
     )
   }
 
-  // DESKTOP
   const s = {
     app:{display:'flex',height:'100vh',overflow:'hidden',background:t.bg,color:t.text},
     sidebar:{width:220,borderRight:'1px solid '+t.border,display:'flex',flexDirection:'column',background:t.bgSidebar,flexShrink:0},
     brandArea:{display:'flex',alignItems:'center',gap:10,padding:'14px 16px 12px',borderBottom:'1px solid '+t.border},
-    logoImg:{width:40,height:40,borderRadius:8,objectFit:'contain',flexShrink:0,background:'#fff',border:'1px solid '+t.borderSoft},
+    logoImg:{width:40,height:40,borderRadius:8,objectFit:'contain',flexShrink:0,background:'#fff'},
     nav:{padding:'8px 10px',flex:1,display:'flex',flexDirection:'column',gap:2,overflow:'auto'},
     navItem:{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',borderRadius:8,fontSize:13,color:t.textSoft},
     navActive:{background:t.bgCard,color:t.accent,fontWeight:500},
@@ -258,13 +241,10 @@ export default function Layout({ children, title = 'Dashboard' }) {
     logoutBtn:{margin:10,padding:'8px 10px',borderRadius:8,border:'1px solid '+t.border,background:'transparent',fontSize:12,cursor:'pointer',color:t.textSoft,textAlign:'left',display:'flex',alignItems:'center',gap:8},
     main:{flex:1,overflow:'auto',display:'flex',flexDirection:'column',background:t.bg},
     topbar:{padding:'12px 24px',borderBottom:'1px solid '+t.border,background:t.bgCard,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0},
-    topbarTitle:{fontSize:16,fontWeight:500,color:t.text},
     content:{padding:'20px 24px',flex:1,overflow:'auto'},
     btnSm:{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 12px',borderRadius:8,border:'1px solid '+t.border,fontSize:12,fontWeight:500,color:t.text,background:t.bgCard},
     btnPrimary:{background:t.accent,color:'#fff',border:'1px solid '+t.accent},
     popover:{margin:'4px 10px 0',padding:12,borderRadius:10,border:'1px solid '+t.border,background:t.bgCard},
-    popLabel:{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',color:t.textSoft,marginBottom:6},
-    optRow:{display:'flex',gap:4,marginBottom:10},
     opt:(active)=>({flex:1,padding:'5px 0',borderRadius:6,border:'1px solid '+(active?t.accent:t.border),background:active?t.accentSoft:'transparent',color:active?t.accentDark:t.textSoft,fontSize:11,cursor:'pointer',fontWeight:active?600:400,textAlign:'center'}),
     colorDot:(color,active)=>({width:26,height:26,borderRadius:'50%',background:color,cursor:'pointer',border:active?'3px solid '+t.text:'2px solid '+t.border}),
   }
@@ -288,9 +268,9 @@ export default function Layout({ children, title = 'Dashboard' }) {
         </button>
         {temaAberto&&(
           <div style={s.popover}>
-            <div style={s.popLabel}>Aparencia</div>
-            <div style={s.optRow}>{[['claro','Claro'],['escuro','Escuro'],['auto','Auto']].map(([v,l])=>(<div key={v} style={s.opt(mode===v)} onClick={()=>changeMode(v)}>{l}</div>))}</div>
-            <div style={s.popLabel}>Cor de destaque</div>
+            <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:t.textSoft,marginBottom:6}}>Aparencia</div>
+            <div style={{display:'flex',gap:4,marginBottom:10}}>{[['claro','Claro'],['escuro','Escuro'],['auto','Auto']].map(([v,l])=>(<div key={v} style={s.opt(mode===v)} onClick={()=>changeMode(v)}>{l}</div>))}</div>
+            <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:t.textSoft,marginBottom:6}}>Cor</div>
             <div style={{display:'flex',gap:10}}><div style={s.colorDot('#1D9E75',accent==='verde')} onClick={()=>changeAccent('verde')}/><div style={s.colorDot('#2563EB',accent==='azul')} onClick={()=>changeAccent('azul')}/></div>
           </div>
         )}
@@ -298,9 +278,9 @@ export default function Layout({ children, title = 'Dashboard' }) {
       </div>
       <div style={s.main}>
         <div style={s.topbar}>
-          <div style={s.topbarTitle}>{title}</div>
+          <div style={{fontSize:16,fontWeight:500,color:t.text}}>{title}</div>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
-            {isGestor&&<NotificacoesSino t={t} isMobile={false}/>}
+            {isGestor&&<NotificacoesSino t={t}/>}
             {isGestor&&<Link href="/os" style={s.btnSm}>+ Nova OS</Link>}
             {isGestor&&<Link href="/recibo" style={{...s.btnSm,...s.btnPrimary}}><Icon name="recibo" size={14}/> Recibo</Link>}
           </div>
