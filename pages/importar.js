@@ -46,50 +46,56 @@ export default function Importar() {
     supabase.from('usuarios').select('id,nome').eq('ativo',true).order('nome').then(({data})=>setTecnicos(data||[]))
   })
 
-  async function interpretar() {
+  function interpretar() {
     if (!texto.trim()) { alert('Cole a mensagem do cliente primeiro'); return }
     setInterpretando(true)
-    try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{
-            role: 'user',
-            content: `Você é um assistente que extrai dados de mensagens de clientes de assistência técnica.
 
-Analise a mensagem abaixo e extraia os campos em JSON. Responda APENAS com JSON válido, sem markdown, sem explicações.
+    // extrai valor após "campo:" — funciona com ou sem espaço, maiúsculas/minúsculas
+    function extrair(campos) {
+      const linhas = texto.split('\n')
+      for (const campo of campos) {
+        for (const linha of linhas) {
+          const regex = new RegExp(campo + '\\s*:?\\s*(.+)', 'i')
+          const match = linha.match(regex)
+          if (match && match[1].trim()) return match[1].trim()
+        }
+      }
+      return ''
+    }
 
-Campos a extrair:
-- cliente_nome: nome do cliente
-- cliente_telefone: telefone (apenas números e traços)
-- cliente_endereco: endereço completo (rua, número)
-- bairro: bairro (tente identificar se é de Curitiba)
-- produto: produto ou equipamento (ex: Geladeira Brastemp, Lavadora Samsung)
-- servico: tipo de serviço ou problema relatado
-- descricao: descrição completa do problema
+    // tenta identificar bairro de Curitiba na mensagem
+    function encontrarBairro() {
+      const bairroExtraido = extrair(['bairro','Bairro','BAIRRO'])
+      if (bairroExtraido) {
+        // verifica se bate com algum bairro conhecido
+        const found = BAIRROS_CURITIBA.find(b => 
+          b.toLowerCase() === bairroExtraido.toLowerCase() ||
+          bairroExtraido.toLowerCase().includes(b.toLowerCase())
+        )
+        return found || bairroExtraido
+      }
+      // tenta achar bairro no texto todo
+      const textoLower = texto.toLowerCase()
+      return BAIRROS_CURITIBA.find(b => textoLower.includes(b.toLowerCase())) || ''
+    }
 
-Se um campo não for encontrado, use string vazia "".
+    setTimeout(() => {
+      const nome = extrair(['nome','Nome','NOME','cliente','Cliente'])
+      const telefone = extrair(['telefone','Telefone','TELEFONE','fone','celular','whatsapp','contato'])
+      const endereco = extrair(['endereço','endereco','Endereço','Endereco','ENDERECO','rua','Rua','logradouro'])
+      const bairro = encontrarBairro()
+      const produto = extrair(['produto','Produto','PRODUTO','equipamento','Equipamento','aparelho','Aparelho','eletrodoméstico'])
+      const problema = extrair(['problema','Problema','PROBLEMA','defeito','Defeito','DEFEITO','serviço','servico','Serviço','Servico','falha'])
+      const descricao = extrair(['descrição','descricao','Descrição','Descricao','observação','observacao','detalhes'])
 
-Mensagem do cliente:
-${texto}`
-          }]
-        })
-      })
-      const data = await response.json()
-      const raw = data.content[0].text
-      const clean = raw.replace(/```json|```/g,'').trim()
-      const parsed = JSON.parse(clean)
       setForm({
-        cliente_nome: parsed.cliente_nome||'',
-        cliente_telefone: parsed.cliente_telefone||'',
-        cliente_endereco: parsed.cliente_endereco||'',
-        bairro: parsed.bairro||'',
-        produto: parsed.produto||'',
-        servico: parsed.servico||'',
-        descricao: parsed.descricao||'',
+        cliente_nome: nome,
+        cliente_telefone: telefone,
+        cliente_endereco: endereco,
+        bairro: bairro,
+        produto: produto,
+        servico: problema || descricao,
+        descricao: descricao || problema,
         valor: 0,
         status: 'em_andamento',
         periodo: '',
@@ -97,11 +103,8 @@ ${texto}`
         data_entrada: new Date().toISOString().split('T')[0],
         observacoes: '',
       })
-    } catch(e) {
-      alert('Erro ao interpretar mensagem. Tente novamente.')
-      console.error(e)
-    }
-    setInterpretando(false)
+      setInterpretando(false)
+    }, 600)
   }
 
   async function salvarOS() {
