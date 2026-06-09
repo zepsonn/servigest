@@ -105,7 +105,8 @@ export default function OS() {
   }
   async function salvar(){
     if(!form.data_entrada){alert('Preencha a data');return}
-    await supabase.from('ordens_servico').insert([{...form,valor:Number(form.valor)||0,cliente_id:form.cliente_id||null,tecnico_id:form.tecnico_id||null,data_conclusao:form.data_conclusao||null}])
+    const {agendamento_id, ...formData} = form
+    await supabase.from('ordens_servico').insert([{...formData,valor:Number(form.valor)||0,cliente_id:form.cliente_id||null,tecnico_id:form.tecnico_id||null,data_conclusao:form.data_conclusao||null}])
     setModal(false); setForm(FORM0); loadOS()
   }
   async function salvarEdicao(){
