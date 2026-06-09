@@ -29,6 +29,8 @@ export default function Layout({ children, title = 'Dashboard' }) {
     { href: '/dashboard', icon: 'DASH', label: 'Dashboard' },
     { href: '/os', icon: 'OS', label: 'Ordens de Servico' },
     { href: '/agendamentos', icon: 'AGD', label: 'Agendamentos' },
+    { href: '/estoque', icon: 'EST', label: 'Estoque' },
+    { href: '/vendas', icon: 'VEN', label: 'Vendas de Pecas' },
     { href: '/recibo', icon: 'REC', label: 'Recibos' },
     { href: '/faturamento', icon: 'FAT', label: 'Faturamento' },
     { href: '/despesas', icon: 'DESP', label: 'Despesas' },
@@ -39,7 +41,7 @@ export default function Layout({ children, title = 'Dashboard' }) {
     { href: '/os', icon: 'OS', label: 'Ordens de Servico' },
     { href: '/historico', icon: 'HIST', label: 'Historico' },
   ]
-  const emoji = {DASH:'\u{1F4CA}',OS:'\u{1F527}',AGD:'\u{1F4C5}',REC:'\u{1F9FE}',FAT:'\u{1F4B0}',DESP:'\u{1F4B8}',FUN:'\u{1FAAA}',HIST:'\u{1F550}'}
+  const emoji = {DASH:'\u{1F4CA}',OS:'\u{1F527}',AGD:'\u{1F4C5}',EST:'\u{1F4E6}',VEN:'\u{1F6D2}',REC:'\u{1F9FE}',FAT:'\u{1F4B0}',DESP:'\u{1F4B8}',FUN:'\u{1FAAA}',HIST:'\u{1F550}'}
   const nav = isGestor ? navGestor : navFunc
 
   const s = {
