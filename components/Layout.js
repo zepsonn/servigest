@@ -16,6 +16,29 @@ function useIsMobile() {
   return mobile
 }
 
+// icones SVG limpos (stroke-based)
+function Icon({name, size=18}) {
+  const props = { width:size, height:size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:1.7, strokeLinecap:'round', strokeLinejoin:'round' }
+  const paths = {
+    dashboard:<><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></>,
+    os:<><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></>,
+    agenda:<><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>,
+    estoque:<><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></>,
+    vendas:<><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></>,
+    recibo:<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></>,
+    faturamento:<><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></>,
+    despesas:<><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></>,
+    funcionarios:<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
+    historico:<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
+    sol:<><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>,
+    lua:<><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></>,
+    sair:<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>,
+    menu:<><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></>,
+    fechar:<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+  }
+  return <svg {...props}>{paths[name]}</svg>
+}
+
 export default function Layout({ children, title = 'Dashboard' }) {
   const [user, setUser] = useState(null)
   const [temaAberto, setTemaAberto] = useState(false)
@@ -41,29 +64,27 @@ export default function Layout({ children, title = 'Dashboard' }) {
   const isGestor = user.role === 'gestor'
 
   const navGestor = [
-    { href: '/dashboard', icon: '\u{1F4CA}', label: 'Dashboard' },
-    { href: '/os', icon: '\u{1F527}', label: 'OS' },
-    { href: '/agendamentos', icon: '\u{1F4C5}', label: 'Agenda' },
-    { href: '/estoque', icon: '\u{1F4E6}', label: 'Estoque' },
-    { href: '/vendas', icon: '\u{1F6D2}', label: 'Vendas' },
-    { href: '/recibo', icon: '\u{1F9FE}', label: 'Recibos' },
-    { href: '/faturamento', icon: '\u{1F4B0}', label: 'Faturamento' },
-    { href: '/despesas', icon: '\u{1F4B8}', label: 'Despesas' },
-    { href: '/funcionarios', icon: '\u{1FAAA}', label: 'Equipe' },
+    { href: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
+    { href: '/os', icon: 'os', label: 'OS' },
+    { href: '/agendamentos', icon: 'agenda', label: 'Agenda' },
+    { href: '/estoque', icon: 'estoque', label: 'Estoque' },
+    { href: '/vendas', icon: 'vendas', label: 'Vendas' },
+    { href: '/recibo', icon: 'recibo', label: 'Recibos' },
+    { href: '/faturamento', icon: 'faturamento', label: 'Faturamento' },
+    { href: '/despesas', icon: 'despesas', label: 'Despesas' },
+    { href: '/funcionarios', icon: 'funcionarios', label: 'Equipe' },
   ]
   const navFunc = [
-    { href: '/dashboard', icon: '\u{1F4C5}', label: 'Servicos' },
-    { href: '/os', icon: '\u{1F527}', label: 'OS' },
-    { href: '/historico', icon: '\u{1F550}', label: 'Historico' },
+    { href: '/dashboard', icon: 'agenda', label: 'Servicos' },
+    { href: '/os', icon: 'os', label: 'OS' },
+    { href: '/historico', icon: 'historico', label: 'Historico' },
   ]
   const nav = isGestor ? navGestor : navFunc
-  // mobile mostra max 5 itens na barra inferior
   const navMobile = nav.slice(0, 5)
 
   if (isMobile) {
     return (
       <div style={{display:'flex',flexDirection:'column',minHeight:'100vh',background:t.bg,color:t.text,fontFamily:'inherit'}}>
-        {/* TOPBAR MOBILE */}
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 16px',background:t.bgCard,borderBottom:'1px solid '+t.border,position:'sticky',top:0,zIndex:50}}>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
             <img src={LOGO_SRC} alt="logo" style={{width:32,height:32,borderRadius:6,objectFit:'contain',background:'#fff'}}/>
@@ -73,36 +94,34 @@ export default function Layout({ children, title = 'Dashboard' }) {
             </div>
           </div>
           <div style={{fontSize:14,fontWeight:500,color:t.text}}>{title}</div>
-          <button style={{background:'none',border:'none',fontSize:22,cursor:'pointer',color:t.textSoft,padding:4}} onClick={()=>setMenuAberto(!menuAberto)}>
-            {menuAberto ? '\u2715' : '\u2630'}
+          <button style={{background:'none',border:'none',cursor:'pointer',color:t.textSoft,padding:4,display:'flex'}} onClick={()=>setMenuAberto(!menuAberto)}>
+            <Icon name={menuAberto?'fechar':'menu'} size={22}/>
           </button>
         </div>
 
-        {/* MENU LATERAL MOBILE (gaveta) */}
         {menuAberto && (
           <div style={{position:'fixed',inset:0,zIndex:99}} onClick={()=>setMenuAberto(false)}>
             <div style={{position:'absolute',top:0,right:0,width:240,height:'100%',background:t.bgSidebar,borderLeft:'1px solid '+t.border,padding:'16px 10px',display:'flex',flexDirection:'column'}} onClick={e=>e.stopPropagation()}>
               <div style={{fontSize:13,fontWeight:600,color:t.textSoft,marginBottom:12,paddingLeft:8}}>Menu</div>
               {nav.map(item=>(
                 <Link key={item.href} href={item.href} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 10px',borderRadius:8,fontSize:14,color:router.pathname===item.href?t.accent:t.textSoft,background:router.pathname===item.href?t.bgCard:'transparent',fontWeight:router.pathname===item.href?500:400,marginBottom:2}}>
-                  <span style={{fontSize:18}}>{item.icon}</span> {item.label}
+                  <Icon name={item.icon}/> {item.label}
                 </Link>
               ))}
               <div style={{marginTop:'auto'}}>
-                <button style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid '+t.border,background:'transparent',fontSize:13,cursor:'pointer',color:t.textSoft,textAlign:'left',marginBottom:8}} onClick={()=>{setMenuAberto(false);setTemaAberto(!temaAberto)}}>
-                  {t.dark?'\u{1F319}':'\u2600\uFE0F'} Tema
+                <button style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid '+t.border,background:'transparent',fontSize:13,cursor:'pointer',color:t.textSoft,textAlign:'left',marginBottom:8,display:'flex',alignItems:'center',gap:8}} onClick={()=>{setMenuAberto(false);setTemaAberto(!temaAberto)}}>
+                  <Icon name={t.dark?'lua':'sol'} size={16}/> Tema
                 </button>
-                <button style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid '+t.border,background:'transparent',fontSize:13,cursor:'pointer',color:t.textSoft,textAlign:'left'}} onClick={logout}>
-                  \u21A9 Sair
+                <button style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid '+t.border,background:'transparent',fontSize:13,cursor:'pointer',color:t.textSoft,textAlign:'left',display:'flex',alignItems:'center',gap:8}} onClick={logout}>
+                  <Icon name="sair" size={16}/> Sair
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* POPOVER TEMA MOBILE */}
         {temaAberto && (
-          <div style={{position:'fixed',inset:0,zIndex:98,display:'flex',alignItems:'flex-end',justifyContent:'center'}} onClick={()=>setTemaAberto(false)}>
+          <div style={{position:'fixed',inset:0,zIndex:98,display:'flex',alignItems:'flex-end',justifyContent:'center',background:'rgba(0,0,0,.4)'}} onClick={()=>setTemaAberto(false)}>
             <div style={{background:t.bgCard,borderRadius:'16px 16px 0 0',padding:20,width:'100%',maxWidth:480,border:'1px solid '+t.border}} onClick={e=>e.stopPropagation()}>
               <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',color:t.textSoft,marginBottom:8}}>Aparencia</div>
               <div style={{display:'flex',gap:8,marginBottom:16}}>
@@ -119,7 +138,6 @@ export default function Layout({ children, title = 'Dashboard' }) {
           </div>
         )}
 
-        {/* CONTEUDO */}
         <div style={{flex:1,padding:'16px 14px',paddingBottom:80,overflow:'auto'}}>
           {isGestor && (
             <div style={{display:'flex',gap:8,marginBottom:14}}>
@@ -130,11 +148,10 @@ export default function Layout({ children, title = 'Dashboard' }) {
           {children}
         </div>
 
-        {/* BARRA INFERIOR MOBILE */}
         <div style={{position:'fixed',bottom:0,left:0,right:0,background:t.bgCard,borderTop:'1px solid '+t.border,display:'flex',zIndex:50}}>
           {navMobile.map(item=>(
-            <Link key={item.href} href={item.href} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',padding:'8px 4px',fontSize:10,color:router.pathname===item.href?t.accent:t.textSoft,fontWeight:router.pathname===item.href?600:400,borderTop:router.pathname===item.href?'2px solid '+t.accent:'2px solid transparent'}}>
-              <span style={{fontSize:20,marginBottom:2}}>{item.icon}</span>{item.label}
+            <Link key={item.href} href={item.href} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',padding:'8px 4px',fontSize:10,color:router.pathname===item.href?t.accent:t.textSoft,fontWeight:router.pathname===item.href?600:400,borderTop:router.pathname===item.href?'2px solid '+t.accent:'2px solid transparent',gap:3}}>
+              <Icon name={item.icon} size={20}/>{item.label}
             </Link>
           ))}
         </div>
@@ -142,7 +159,7 @@ export default function Layout({ children, title = 'Dashboard' }) {
     )
   }
 
-  // DESKTOP (layout original)
+  // DESKTOP
   const s = {
     app:{display:'flex',height:'100vh',overflow:'hidden',background:t.bg,color:t.text},
     sidebar:{width:220,borderRight:'1px solid '+t.border,display:'flex',flexDirection:'column',background:t.bgSidebar,flexShrink:0},
@@ -151,15 +168,15 @@ export default function Layout({ children, title = 'Dashboard' }) {
     brandName:{fontSize:15,fontWeight:700,lineHeight:1.2,color:t.text},
     brandSlogan:{fontSize:11,color:t.accent,fontWeight:600},
     nav:{padding:'8px 10px',flex:1,display:'flex',flexDirection:'column',gap:2,overflow:'auto'},
-    navItem:{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,fontSize:13,color:t.textSoft},
+    navItem:{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',borderRadius:8,fontSize:13,color:t.textSoft},
     navActive:{background:t.bgCard,color:t.accent,fontWeight:500},
-    themeBtn:{margin:'0 10px',padding:'8px 10px',borderRadius:8,border:'1px solid '+t.border,background:'transparent',fontSize:12,cursor:'pointer',color:t.textSoft,textAlign:'left',display:'flex',alignItems:'center',gap:6},
-    logoutBtn:{margin:10,padding:'7px 10px',borderRadius:8,border:'1px solid '+t.border,background:'transparent',fontSize:12,cursor:'pointer',color:t.textSoft,textAlign:'left'},
+    themeBtn:{margin:'0 10px',padding:'8px 10px',borderRadius:8,border:'1px solid '+t.border,background:'transparent',fontSize:12,cursor:'pointer',color:t.textSoft,textAlign:'left',display:'flex',alignItems:'center',gap:8},
+    logoutBtn:{margin:10,padding:'8px 10px',borderRadius:8,border:'1px solid '+t.border,background:'transparent',fontSize:12,cursor:'pointer',color:t.textSoft,textAlign:'left',display:'flex',alignItems:'center',gap:8},
     main:{flex:1,overflow:'auto',display:'flex',flexDirection:'column',background:t.bg},
     topbar:{padding:'12px 24px',borderBottom:'1px solid '+t.border,background:t.bgCard,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0},
     topbarTitle:{fontSize:16,fontWeight:500,color:t.text},
     content:{padding:'20px 24px',flex:1,overflow:'auto'},
-    btnSm:{display:'inline-flex',alignItems:'center',padding:'5px 12px',borderRadius:8,border:'1px solid '+t.border,fontSize:12,fontWeight:500,color:t.text,background:t.bgCard},
+    btnSm:{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 12px',borderRadius:8,border:'1px solid '+t.border,fontSize:12,fontWeight:500,color:t.text,background:t.bgCard},
     btnPrimary:{background:t.accent,color:'#fff',border:'1px solid '+t.accent},
     popover:{margin:'4px 10px 0',padding:12,borderRadius:10,border:'1px solid '+t.border,background:t.bgCard},
     popLabel:{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',color:t.textSoft,marginBottom:6},
@@ -178,12 +195,12 @@ export default function Layout({ children, title = 'Dashboard' }) {
         <nav style={s.nav}>
           {nav.map(item => (
             <Link key={item.href} href={item.href} style={{...s.navItem,...(router.pathname===item.href?s.navActive:{})}}>
-              <span>{item.icon}</span> {item.label}
+              <Icon name={item.icon} size={17}/> {item.label}
             </Link>
           ))}
         </nav>
         <button style={s.themeBtn} onClick={()=>setTemaAberto(!temaAberto)}>
-          {t.dark?'\u{1F319}':'\u2600\uFE0F'} Tema {temaAberto?'\u25B2':'\u25BC'}
+          <Icon name={t.dark?'lua':'sol'} size={15}/> Tema
         </button>
         {temaAberto&&(
           <div style={s.popover}>
@@ -196,14 +213,14 @@ export default function Layout({ children, title = 'Dashboard' }) {
             </div>
           </div>
         )}
-        <button style={s.logoutBtn} onClick={logout}>{'\u21A9'} Sair</button>
+        <button style={s.logoutBtn} onClick={logout}><Icon name="sair" size={15}/> Sair</button>
       </div>
       <div style={s.main}>
         <div style={s.topbar}>
           <div style={s.topbarTitle}>{title}</div>
           {isGestor&&(<div style={{display:'flex',gap:8}}>
             <Link href="/os" style={s.btnSm}>+ Nova OS</Link>
-            <Link href="/recibo" style={{...s.btnSm,...s.btnPrimary}}>{'\u{1F9FE}'} Recibo</Link>
+            <Link href="/recibo" style={{...s.btnSm,...s.btnPrimary}}><Icon name="recibo" size={14}/> Recibo</Link>
           </div>)}
         </div>
         <div style={s.content}>{children}</div>
