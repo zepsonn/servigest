@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../lib/theme'
@@ -16,13 +16,13 @@ const CARDS_DEFAULT = [
   {id:'clientes', label:'Clientes ativos', ativo:true, tamanho:'pequeno'},
   {id:'andamento', label:'Em andamento', ativo:true, tamanho:'pequeno'},
   {id:'concluidas', label:'Concluídas', ativo:true, tamanho:'pequeno'},
-  {id:'hoje', label:'Agendamentos hoje', ativo:true, tamanho:'pequeno'},
+  {id:'hoje', label:'Agenda hoje', ativo:true, tamanho:'pequeno'},
   {id:'grafico', label:'Receita por mês', ativo:true, tamanho:'largo'},
   {id:'agendamentos', label:'Próximos agendamentos', ativo:true, tamanho:'largo'},
 ]
 
 function loadConfig() {
-  try { return JSON.parse(localStorage.getItem('dashboard_config')) || CARDS_DEFAULT }
+  try { const c = JSON.parse(localStorage.getItem('dashboard_config')); return c && c.length ? c : CARDS_DEFAULT }
   catch { return CARDS_DEFAULT }
 }
 function saveConfig(cfg) { localStorage.setItem('dashboard_config', JSON.stringify(cfg)) }
@@ -34,6 +34,8 @@ export default function Dashboard() {
   const [editando, setEditando] = useState(false)
   const [config, setConfig] = useState(CARDS_DEFAULT)
   const [configEdit, setConfigEdit] = useState(CARDS_DEFAULT)
+  const [dragging, setDragging] = useState(null)
+  const [dragOver, setDragOver] = useState(null)
   const { t } = useTheme()
   const isMobile = useIsMobile()
 
@@ -41,7 +43,7 @@ export default function Dashboard() {
     const u = JSON.parse(localStorage.getItem('servigest_user')||'{}')
     setUser(u); loadData(u)
     const cfg = loadConfig()
-    setConfig(cfg); setConfigEdit(cfg)
+    setConfig(cfg); setConfigEdit([...cfg])
   },[])
 
   async function loadData(u) {
@@ -68,13 +70,24 @@ export default function Dashboard() {
     }
   }
 
-  function salvarConfig() {
-    setConfig(configEdit); saveConfig(configEdit); setEditando(false)
+  // DRAG AND DROP
+  function onDragStart(idx){ setDragging(idx) }
+  function onDragOver(e, idx){ e.preventDefault(); setDragOver(idx) }
+  function onDrop(e, idx){
+    e.preventDefault()
+    if(dragging===null || dragging===idx) return
+    const arr=[...configEdit]
+    const item=arr.splice(dragging,1)[0]
+    arr.splice(idx,0,item)
+    setConfigEdit(arr)
+    setDragging(null); setDragOver(null)
   }
+  function onDragEnd(){ setDragging(null); setDragOver(null) }
+
   function toggleAtivo(id){ setConfigEdit(c=>c.map(x=>x.id===id?{...x,ativo:!x.ativo}:x)) }
   function setTamanho(id,tam){ setConfigEdit(c=>c.map(x=>x.id===id?{...x,tamanho:tam}:x)) }
-  function moverCima(idx){ if(idx===0) return; const c=[...configEdit]; [c[idx-1],c[idx]]=[c[idx],c[idx-1]]; setConfigEdit(c) }
-  function moverBaixo(idx){ if(idx===configEdit.length-1) return; const c=[...configEdit]; [c[idx],c[idx+1]]=[c[idx+1],c[idx]]; setConfigEdit(c) }
+  function salvarConfig(){ setConfig(configEdit); saveConfig(configEdit); setEditando(false) }
+  function cancelarEdit(){ setConfigEdit([...config]); setEditando(false) }
 
   if(!user) return null
   const isGestor=user.role==='gestor'
@@ -83,63 +96,68 @@ export default function Dashboard() {
   const ticket=stats.concluidas?stats.fat/stats.concluidas:0
   const maxVal=Math.max(...(stats.meses||[]).map(([,v])=>v),1)
 
-  const colSpan = (tam) => {
+  const colSpan=(tam)=>{
     if(isMobile) return '1 / -1'
     if(tam==='largo') return '1 / -1'
     if(tam==='medio') return 'span 2'
     return 'span 1'
   }
 
-  const cardStyle = (tam) => ({
-    background:t.bgCard, border:'1px solid '+t.border, borderRadius:12,
-    padding:'16px 18px', gridColumn:colSpan(tam)
-  })
-
   const cardData = {
-    faturamento: { label:'Faturamento', value:fmt(stats.fat), sub:'OS concluídas', color:null },
-    despesas: { label:'Despesas', value:fmt(stats.desp), sub:'gastos da empresa', color:'#A32D2D' },
-    lucro: { label:'Lucro', value:fmt(lucro), sub:'fat − despesas', color:lucro>=0?t.accent:'#A32D2D', highlight:true },
-    ticket: { label:'Ticket médio', value:fmt(ticket), sub:'por serviço', color:null },
-    clientes: { label:'Clientes ativos', value:stats.clientes, sub:null, color:null },
-    andamento: { label:'Em andamento', value:stats.andamento, sub:null, color:'#854F0B' },
-    concluidas: { label:'Concluídas', value:stats.concluidas, sub:null, color:'#3B6D11' },
-    hoje: { label:'Agenda hoje', value:stats.hoje, sub:null, color:null },
+    faturamento:{label:'Faturamento',value:fmt(stats.fat),sub:'OS concluídas',color:null,highlight:false},
+    despesas:{label:'Despesas',value:fmt(stats.desp),sub:'gastos da empresa',color:'#A32D2D',highlight:false},
+    lucro:{label:'Lucro',value:fmt(lucro),sub:'fat − despesas',color:lucro>=0?t.accent:'#A32D2D',highlight:true},
+    ticket:{label:'Ticket médio',value:fmt(ticket),sub:'por serviço',color:null,highlight:false},
+    clientes:{label:'Clientes ativos',value:stats.clientes,sub:null,color:null,highlight:false},
+    andamento:{label:'Em andamento',value:stats.andamento,sub:null,color:'#854F0B',highlight:false},
+    concluidas:{label:'Concluídas',value:stats.concluidas,sub:null,color:'#3B6D11',highlight:false},
+    hoje:{label:'Agenda hoje',value:stats.hoje,sub:null,color:null,highlight:false},
   }
-
-  const gridCols = isMobile ? '1fr' : 'repeat(4,1fr)'
 
   return (
     <Layout title={isGestor?'Dashboard':'Meus Serviços'}>
       {isGestor ? (
         <>
-          {/* BOTÃO EDITAR */}
           <div style={{display:'flex',justifyContent:'flex-end',marginBottom:14}}>
-            <button style={{display:'flex',alignItems:'center',gap:6,padding:'6px 14px',borderRadius:8,border:'1px solid '+t.border,background:editando?t.accent:t.bgCard,color:editando?'#fff':t.text,fontSize:12,cursor:'pointer',fontWeight:500}} onClick={()=>{setEditando(!editando);setConfigEdit(config)}}>
-              {editando ? '× Fechar edição' : '⊞ Editar dashboard'}
+            <button style={{padding:'6px 14px',borderRadius:8,border:'1px solid '+t.border,background:editando?t.accent:t.bgCard,color:editando?'#fff':t.text,fontSize:12,cursor:'pointer',fontWeight:500}} onClick={()=>editando?cancelarEdit():setEditando(true)}>
+              {editando ? '× Cancelar' : '⊞ Editar dashboard'}
             </button>
           </div>
 
-          {/* PAINEL DE EDIÇÃO */}
+          {/* PAINEL DRAG AND DROP */}
           {editando && (
-            <div style={{background:t.bgCard,border:'1px solid '+t.accent,borderRadius:12,padding:20,marginBottom:20}}>
-              <div style={{fontSize:14,fontWeight:600,color:t.text,marginBottom:4}}>Personalizar dashboard</div>
-              <div style={{fontSize:12,color:t.textSoft,marginBottom:16}}>Ative, desative, mude o tamanho e reordene os blocos.</div>
+            <div style={{background:t.bgCard,border:'2px dashed '+t.accent,borderRadius:12,padding:20,marginBottom:20}}>
+              <div style={{fontSize:14,fontWeight:600,color:t.text,marginBottom:2}}>Arraste para reordenar</div>
+              <div style={{fontSize:12,color:t.textSoft,marginBottom:16}}>Segure e arraste o card para mudar a ordem. Use o toggle para mostrar/ocultar e os botões P M L para o tamanho.</div>
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 {configEdit.map((card,idx)=>(
-                  <div key={card.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',borderRadius:8,background:t.bgSidebar,border:'1px solid '+(card.ativo?t.border:t.borderSoft),opacity:card.ativo?1:0.5}}>
-                    {/* ordem */}
-                    <div style={{display:'flex',flexDirection:'column',gap:2}}>
-                      <button onClick={()=>moverCima(idx)} style={{background:'none',border:'none',cursor:'pointer',color:t.textSoft,fontSize:14,padding:'0 4px',lineHeight:1}}>▲</button>
-                      <button onClick={()=>moverBaixo(idx)} style={{background:'none',border:'none',cursor:'pointer',color:t.textSoft,fontSize:14,padding:'0 4px',lineHeight:1}}>▼</button>
-                    </div>
-                    {/* toggle ativo */}
-                    <div onClick={()=>toggleAtivo(card.id)} style={{width:36,height:20,borderRadius:10,background:card.ativo?t.accent:t.borderSoft,cursor:'pointer',position:'relative',flexShrink:0}}>
+                  <div
+                    key={card.id}
+                    draggable
+                    onDragStart={()=>onDragStart(idx)}
+                    onDragOver={e=>onDragOver(e,idx)}
+                    onDrop={e=>onDrop(e,idx)}
+                    onDragEnd={onDragEnd}
+                    style={{
+                      display:'flex',alignItems:'center',gap:10,padding:'10px 14px',
+                      borderRadius:8,border:'1px solid '+(dragOver===idx?t.accent:card.ativo?t.border:t.borderSoft),
+                      background:dragging===idx?t.accentSoft:dragOver===idx?t.bgSidebar:t.bgSidebar,
+                      opacity:card.ativo?1:0.5,cursor:'grab',
+                      transform:dragging===idx?'scale(1.02)':'scale(1)',
+                      transition:'transform .1s, border-color .1s',
+                      userSelect:'none',
+                    }}
+                  >
+                    {/* handle */}
+                    <div style={{color:t.textSoft,fontSize:16,cursor:'grab',flexShrink:0}}>⠿</div>
+                    {/* toggle */}
+                    <div onClick={()=>toggleAtivo(card.id)} style={{width:36,height:20,borderRadius:10,background:card.ativo?t.accent:t.borderSoft,cursor:'pointer',position:'relative',flexShrink:0}} onDragStart={e=>e.stopPropagation()}>
                       <div style={{position:'absolute',top:2,left:card.ativo?18:2,width:16,height:16,borderRadius:'50%',background:'#fff',transition:'left .15s'}}/>
                     </div>
                     {/* label */}
                     <span style={{flex:1,fontSize:13,color:t.text,fontWeight:500}}>{card.label}</span>
                     {/* tamanho */}
-                    <div style={{display:'flex',gap:4}}>
+                    <div style={{display:'flex',gap:4}} onDragStart={e=>e.stopPropagation()}>
                       {['pequeno','medio','largo'].map(tam=>(
                         <button key={tam} onClick={()=>setTamanho(card.id,tam)} style={{padding:'3px 8px',borderRadius:6,border:'1px solid '+(card.tamanho===tam?t.accent:t.border),background:card.tamanho===tam?t.accentSoft:'transparent',color:card.tamanho===tam?t.accentDark:t.textSoft,fontSize:11,cursor:'pointer',fontWeight:card.tamanho===tam?600:400}}>
                           {tam==='pequeno'?'P':tam==='medio'?'M':'L'}
@@ -150,20 +168,20 @@ export default function Dashboard() {
                 ))}
               </div>
               <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:16}}>
-                <button style={{padding:'8px 16px',borderRadius:8,background:'transparent',color:t.textSoft,border:'1px solid '+t.border,fontSize:13,cursor:'pointer'}} onClick={()=>{setConfigEdit(CARDS_DEFAULT)}}>Resetar</button>
+                <button style={{padding:'8px 16px',borderRadius:8,background:'transparent',color:t.textSoft,border:'1px solid '+t.border,fontSize:13,cursor:'pointer'}} onClick={()=>setConfigEdit([...CARDS_DEFAULT])}>Resetar</button>
                 <button style={{padding:'8px 16px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:13,cursor:'pointer',fontWeight:500}} onClick={salvarConfig}>Salvar layout</button>
               </div>
             </div>
           )}
 
-          {/* CARDS RENDERIZADOS CONFORME CONFIG */}
-          <div style={{display:'grid',gridTemplateColumns:gridCols,gap:12,marginBottom:16}}>
+          {/* CARDS DINÂMICOS */}
+          <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'repeat(4,1fr)',gap:12,marginBottom:16}}>
             {config.filter(c=>c.ativo && cardData[c.id]).map(card=>{
               const d=cardData[card.id]
               return (
-                <div key={card.id} style={{...cardStyle(card.tamanho),border:d.highlight?'1px solid '+t.accent:'1px solid '+t.border}}>
+                <div key={card.id} style={{background:t.bgCard,border:'1px solid '+(d.highlight?t.accent:t.border),borderRadius:12,padding:'16px 18px',gridColumn:colSpan(card.tamanho)}}>
                   <div style={{fontSize:12,color:t.textSoft,marginBottom:6}}>{d.label}</div>
-                  <div style={{fontSize:isMobile?20:card.tamanho==='pequeno'?18:24,fontWeight:700,color:d.color||t.text}}>{d.value}</div>
+                  <div style={{fontSize:isMobile?18:card.tamanho==='pequeno'?18:24,fontWeight:700,color:d.color||t.text}}>{d.value}</div>
                   {d.sub&&<div style={{fontSize:11,color:t.textSoft,marginTop:4}}>{d.sub}</div>}
                 </div>
               )
