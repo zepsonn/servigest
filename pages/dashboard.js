@@ -1,4 +1,3 @@
-// v3
 import { useEffect, useState } from 'react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
@@ -230,43 +229,6 @@ export default function Dashboard(){
   }
 
   const colSpan=tam=>{ if(isMobile)return'1/-1'; if(tam==='largo')return'1/-1'; if(tam==='medio')return'span 2'; return'span 1' }
-
-  function AgendaCard({os, destaque}) {
-    const data = os.data_entrada ? new Date(os.data_entrada+'T12:00') : null
-    const diasRestantes = data ? Math.round((data - new Date().setHours(0,0,0,0)) / 86400000) : null
-    return (
-      <div style={{
-        borderRadius:10, marginBottom:8,
-        background: destaque ? (t.dark?'#1a2a1a':'#f0faf0') : t.bgSidebar,
-        border: destaque ? '1px solid '+t.accent : '1px solid '+t.borderSoft,
-        overflow:'hidden',
-      }}>
-        <div style={{display:'flex', alignItems:'center', gap:12, padding:'10px 14px'}}>
-          <div style={{textAlign:'center',flexShrink:0,width:44}}>
-            <div style={{fontSize:destaque?20:16,fontWeight:700,color:destaque?t.accent:t.textSoft,lineHeight:1}}>{data?data.getDate():'—'}</div>
-            <div style={{fontSize:10,color:t.textSoft,textTransform:'uppercase'}}>{data?data.toLocaleDateString('pt-BR',{month:'short'}):''}</div>
-          </div>
-          <div style={{width:2,height:36,background:destaque?t.accent:t.borderSoft,borderRadius:99,flexShrink:0}}/>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.cliente_nome||'—'}</div>
-            <div style={{fontSize:11,color:t.textSoft,marginTop:1}}>{os.produto||os.servico||'—'}{os.bairro?' · '+os.bairro:''}</div>
-          </div>
-          <div style={{textAlign:'right',flexShrink:0}}>
-            {os.periodo&&<div style={{fontSize:11,fontWeight:600,color:destaque?t.accent:t.textSoft,marginBottom:2}}>{PERIODOS[os.periodo]||os.periodo}</div>}
-            <div style={{fontSize:11,color:t.textSoft}}>{os.usuarios?.nome||'Sem técnico'}</div>
-          </div>
-          {diasRestantes!==null&&diasRestantes>0&&<div style={{background:t.bgCard,border:'1px solid '+t.borderSoft,borderRadius:6,padding:'2px 8px',fontSize:11,color:t.textSoft,flexShrink:0}}>em {diasRestantes}d</div>}
-          {destaque&&<div style={{background:t.accent,color:'#fff',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:600,flexShrink:0}}>HOJE</div>}
-          {/* botao confirmar — aparece para tecnico e gestor */}
-          <button
-            onClick={()=>{setPainelOS(os);setPainelValor(os.valor||0);setPainelObs(os.observacoes||'')}}
-            style={{padding:'5px 12px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:11,cursor:'pointer',fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>
-            ✓ Confirmar
-          </button>
-        </div>
-      </div>
-    )
-  }
 
   const renderCard=(card,idx,edit)=>{
     const d=cardVal[card.id]
