@@ -145,32 +145,50 @@ export default function Dashboard(){
   function AgendaCard({os, destaque}) {
     const data = os.data_entrada ? new Date(os.data_entrada+'T12:00') : null
     const diasRestantes = data ? Math.round((data - new Date().setHours(0,0,0,0)) / 86400000) : null
-    return (
-      <div style={{borderRadius:10,marginBottom:8,background:destaque?(t.dark?'#1a2a1a':'#f0faf0'):t.bgSidebar,border:destaque?'1px solid '+t.accent:'1px solid '+t.borderSoft,overflow:'hidden'}}>
-        <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px'}}>
-          {/* data */}
-          <div style={{textAlign:'center',flexShrink:0,width:36}}>
-            <div style={{fontSize:destaque?18:15,fontWeight:700,color:destaque?t.accent:t.textSoft,lineHeight:1}}>{data?data.getDate():'—'}</div>
+    // bairro curto — tira o prefixo da cidade (ex: "Sao Jose dos Pinhais - Afonso Pena" → "Afonso Pena")
+    const bairroShort = os.bairro ? os.bairro.split(' - ').pop() : ''
+
+    if(isMobile) return (
+      <div style={{borderRadius:10,marginBottom:8,background:destaque?(t.dark?'#1a2a1a':'#f0faf0'):t.bgSidebar,border:destaque?'1px solid '+t.accent:'1px solid '+t.borderSoft}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px'}}>
+          <div style={{textAlign:'center',flexShrink:0,width:32}}>
+            <div style={{fontSize:16,fontWeight:700,color:destaque?t.accent:t.textSoft,lineHeight:1}}>{data?data.getDate():'—'}</div>
             <div style={{fontSize:9,color:t.textSoft,textTransform:'uppercase'}}>{data?data.toLocaleDateString('pt-BR',{month:'short'}):''}</div>
           </div>
-          <div style={{width:2,height:34,background:destaque?t.accent:t.borderSoft,borderRadius:99,flexShrink:0}}/>
-          {/* nome + info */}
+          <div style={{width:2,height:30,background:destaque?t.accent:t.borderSoft,borderRadius:99,flexShrink:0}}/>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontWeight:600,color:t.text,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.cliente_nome||'—'}</div>
-            <div style={{fontSize:11,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.produto||os.servico||'—'}{os.bairro?' · '+os.bairro:''}</div>
-            {isMobile&&<div style={{fontSize:11,color:destaque?t.accent:t.textSoft,marginTop:1}}>{os.periodo?(PERIODOS[os.periodo]||os.periodo):''}{os.usuarios?.nome?' · '+os.usuarios.nome:''}</div>}
-          </div>
-          {/* badges — so no desktop */}
-          {!isMobile&&(
-            <div style={{textAlign:'right',flexShrink:0}}>
-              {os.periodo&&<div style={{fontSize:11,fontWeight:600,color:destaque?t.accent:t.textSoft}}>{PERIODOS[os.periodo]||os.periodo}</div>}
-              <div style={{fontSize:11,color:t.textSoft}}>{os.usuarios?.nome||'Sem técnico'}</div>
+            <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.cliente_nome||'—'}</div>
+            <div style={{fontSize:11,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+              {[os.produto||os.servico, bairroShort, os.periodo?PERIODOS[os.periodo]:null].filter(Boolean).join(' · ')}
             </div>
-          )}
-          {!isMobile&&diasRestantes!==null&&diasRestantes>0&&<div style={{background:t.bgCard,border:'1px solid '+t.borderSoft,borderRadius:6,padding:'2px 8px',fontSize:11,color:t.textSoft,flexShrink:0}}>em {diasRestantes}d</div>}
-          {!isMobile&&destaque&&<div style={{background:t.accent,color:'#fff',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:600,flexShrink:0}}>HOJE</div>}
-          {/* botao confirmar */}
-          <button onClick={()=>{setPainelOS(os);setPainelValor(os.valor||0);setPainelObs(os.observacoes||'')}} style={{padding:'8px 14px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:12,cursor:'pointer',fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>
+          </div>
+          <button onClick={()=>{setPainelOS(os);setPainelValor(os.valor||0);setPainelObs(os.observacoes||'')}} style={{padding:'8px 14px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:12,cursor:'pointer',fontWeight:600,flexShrink:0}}>
+            ✓
+          </button>
+        </div>
+      </div>
+    )
+
+    // DESKTOP
+    return (
+      <div style={{borderRadius:10,marginBottom:8,background:destaque?(t.dark?'#1a2a1a':'#f0faf0'):t.bgSidebar,border:destaque?'1px solid '+t.accent:'1px solid '+t.borderSoft,overflow:'hidden'}}>
+        <div style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px'}}>
+          <div style={{textAlign:'center',flexShrink:0,width:44}}>
+            <div style={{fontSize:destaque?20:16,fontWeight:700,color:destaque?t.accent:t.textSoft,lineHeight:1}}>{data?data.getDate():'—'}</div>
+            <div style={{fontSize:10,color:t.textSoft,textTransform:'uppercase'}}>{data?data.toLocaleDateString('pt-BR',{month:'short'}):''}</div>
+          </div>
+          <div style={{width:2,height:36,background:destaque?t.accent:t.borderSoft,borderRadius:99,flexShrink:0}}/>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.cliente_nome||'—'}</div>
+            <div style={{fontSize:11,color:t.textSoft,marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.produto||os.servico||'—'}{os.bairro?' · '+os.bairro:''}</div>
+          </div>
+          <div style={{textAlign:'right',flexShrink:0}}>
+            {os.periodo&&<div style={{fontSize:11,fontWeight:600,color:destaque?t.accent:t.textSoft,marginBottom:2}}>{PERIODOS[os.periodo]||os.periodo}</div>}
+            <div style={{fontSize:11,color:t.textSoft}}>{os.usuarios?.nome||'Sem técnico'}</div>
+          </div>
+          {diasRestantes!==null&&diasRestantes>0&&<div style={{background:t.bgCard,border:'1px solid '+t.borderSoft,borderRadius:6,padding:'2px 8px',fontSize:11,color:t.textSoft,flexShrink:0}}>em {diasRestantes}d</div>}
+          {destaque&&<div style={{background:t.accent,color:'#fff',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:600,flexShrink:0}}>HOJE</div>}
+          <button onClick={()=>{setPainelOS(os);setPainelValor(os.valor||0);setPainelObs(os.observacoes||'')}} style={{padding:'5px 12px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:11,cursor:'pointer',fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>
             ✓ Confirmar
           </button>
         </div>
@@ -178,8 +196,7 @@ export default function Dashboard(){
     )
   }
 
-   function dgOver(e,i){e.preventDefault();setOverIdx(i)}
-  function dgDrop(e,i){
+   function dgDrop(e,i){
     e.preventDefault()
     if(dragIdx===null||dragIdx===i){setDragIdx(null);setOverIdx(null);return}
     const arr=[...draft]; const item=arr.splice(dragIdx,1)[0]; arr.splice(i,0,item)
