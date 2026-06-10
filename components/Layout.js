@@ -138,6 +138,7 @@ export default function Layout({ children, title = 'Dashboard' }) {
   const navGestor = [
     { href: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
     { href: '/os', icon: 'os', label: 'Ordens de Servico' },
+    { href: '/clientes', icon: 'clientes', label: 'Clientes' },
     { href: '/importar', icon: 'importar', label: 'Importar via WhatsApp' },
     { href: '/estoque', icon: 'estoque', label: 'Estoque' },
     { href: '/vendas', icon: 'vendas', label: 'Vendas' },

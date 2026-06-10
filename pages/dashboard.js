@@ -87,6 +87,25 @@ export default function Dashboard(){
     }
   }
 
+  const [painelOS, setPainelOS] = useState(null)
+  const [painelValor, setPainelValor] = useState(0)
+  const [painelObs, setPainelObs] = useState('')
+  const [salvandoOS, setSalvandoOS] = useState(false)
+
+  async function confirmarOS() {
+    if(!painelOS) return
+    setSalvandoOS(true)
+    await supabase.from('ordens_servico').update({
+      status: 'concluida',
+      data_conclusao: new Date().toISOString().split('T')[0],
+      valor: Number(painelValor)||painelOS.valor||0,
+      observacoes: painelObs || painelOS.observacoes,
+    }).eq('id', painelOS.id)
+    setSalvandoOS(false)
+    setPainelOS(null); setPainelValor(0); setPainelObs('')
+    loadData(user)
+  }
+
   function dgStart(i){setDragIdx(i)}
   function dgOver(e,i){e.preventDefault();setOverIdx(i)}
   function dgDrop(e,i){
@@ -128,43 +147,34 @@ export default function Dashboard(){
     const diasRestantes = data ? Math.round((data - new Date().setHours(0,0,0,0)) / 86400000) : null
     return (
       <div style={{
-        display:'flex', alignItems:'center', gap:12, padding:'10px 14px',
         borderRadius:10, marginBottom:8,
         background: destaque ? (t.dark?'#1a2a1a':'#f0faf0') : t.bgSidebar,
         border: destaque ? '1px solid '+t.accent : '1px solid '+t.borderSoft,
+        overflow:'hidden',
       }}>
-        {/* data */}
-        <div style={{textAlign:'center',flexShrink:0,width:44}}>
-          <div style={{fontSize:destaque?20:16,fontWeight:700,color:destaque?t.accent:t.textSoft,lineHeight:1}}>
-            {data?data.getDate():'—'}
+        <div style={{display:'flex', alignItems:'center', gap:12, padding:'10px 14px'}}>
+          <div style={{textAlign:'center',flexShrink:0,width:44}}>
+            <div style={{fontSize:destaque?20:16,fontWeight:700,color:destaque?t.accent:t.textSoft,lineHeight:1}}>{data?data.getDate():'—'}</div>
+            <div style={{fontSize:10,color:t.textSoft,textTransform:'uppercase'}}>{data?data.toLocaleDateString('pt-BR',{month:'short'}):''}</div>
           </div>
-          <div style={{fontSize:10,color:t.textSoft,textTransform:'uppercase'}}>
-            {data?data.toLocaleDateString('pt-BR',{month:'short'}):''}
+          <div style={{width:2,height:36,background:destaque?t.accent:t.borderSoft,borderRadius:99,flexShrink:0}}/>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.cliente_nome||'—'}</div>
+            <div style={{fontSize:11,color:t.textSoft,marginTop:1}}>{os.produto||os.servico||'—'}{os.bairro?' · '+os.bairro:''}</div>
           </div>
+          <div style={{textAlign:'right',flexShrink:0}}>
+            {os.periodo&&<div style={{fontSize:11,fontWeight:600,color:destaque?t.accent:t.textSoft,marginBottom:2}}>{PERIODOS[os.periodo]||os.periodo}</div>}
+            <div style={{fontSize:11,color:t.textSoft}}>{os.usuarios?.nome||'Sem técnico'}</div>
+          </div>
+          {diasRestantes!==null&&diasRestantes>0&&<div style={{background:t.bgCard,border:'1px solid '+t.borderSoft,borderRadius:6,padding:'2px 8px',fontSize:11,color:t.textSoft,flexShrink:0}}>em {diasRestantes}d</div>}
+          {destaque&&<div style={{background:t.accent,color:'#fff',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:600,flexShrink:0}}>HOJE</div>}
+          {/* botao confirmar — aparece para tecnico e gestor */}
+          <button
+            onClick={()=>{setPainelOS(os);setPainelValor(os.valor||0);setPainelObs(os.observacoes||'')}}
+            style={{padding:'5px 12px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:11,cursor:'pointer',fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>
+            ✓ Confirmar
+          </button>
         </div>
-        {/* linha */}
-        <div style={{width:2,height:36,background:destaque?t.accent:t.borderSoft,borderRadius:99,flexShrink:0}}/>
-        {/* info */}
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-            {os.cliente_nome||'—'}
-          </div>
-          <div style={{fontSize:11,color:t.textSoft,marginTop:1}}>
-            {os.produto||os.servico||'—'}{os.bairro?' · '+os.bairro:''}
-          </div>
-        </div>
-        {/* periodo e tecnico */}
-        <div style={{textAlign:'right',flexShrink:0}}>
-          {os.periodo&&<div style={{fontSize:11,fontWeight:600,color:destaque?t.accent:t.textSoft,marginBottom:2}}>{PERIODOS[os.periodo]||os.periodo}</div>}
-          <div style={{fontSize:11,color:t.textSoft}}>{os.usuarios?.nome||'Sem técnico'}</div>
-        </div>
-        {/* badge dias */}
-        {diasRestantes!==null&&diasRestantes>0&&(
-          <div style={{background:t.bgCard,border:'1px solid '+t.borderSoft,borderRadius:6,padding:'2px 8px',fontSize:11,color:t.textSoft,flexShrink:0}}>
-            em {diasRestantes}d
-          </div>
-        )}
-        {destaque&&<div style={{background:t.accent,color:'#fff',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:600,flexShrink:0}}>HOJE</div>}
       </div>
     )
   }
@@ -242,8 +252,33 @@ export default function Dashboard(){
     )
   }
 
+  const fmt2 = n => Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
+
   return (
     <Layout title={isGestor?'Dashboard':'Meus Serviços'}>
+      {/* MINI PAINEL CONFIRMAR SERVIÇO */}
+      {painelOS&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.55)',zIndex:200,display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
+          <div style={{background:t.bgCard,borderRadius:'16px 16px 0 0',padding:24,width:'100%',maxWidth:500,border:'1px solid '+t.border}}>
+            <div style={{fontSize:15,fontWeight:600,color:t.text,marginBottom:4}}>Confirmar serviço</div>
+            <div style={{fontSize:13,color:t.textSoft,marginBottom:16}}>{painelOS.cliente_nome} · {painelOS.produto||painelOS.servico||'—'}</div>
+            <div style={{marginBottom:12}}>
+              <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>Valor cobrado (R$)</label>
+              <input type="number" style={{width:'100%',padding:'10px',borderRadius:8,border:'1px solid '+t.border,fontSize:16,fontFamily:'inherit',background:t.bgInput,color:t.text,fontWeight:600}} value={painelValor} onChange={e=>setPainelValor(e.target.value)}/>
+            </div>
+            <div style={{marginBottom:16}}>
+              <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>Observações</label>
+              <textarea style={{width:'100%',padding:'10px',borderRadius:8,border:'1px solid '+t.border,fontSize:14,fontFamily:'inherit',background:t.bgInput,color:t.text,minHeight:60,resize:'vertical'}} value={painelObs} onChange={e=>setPainelObs(e.target.value)} placeholder="Ex: peças trocadas, garantia..."/>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button style={{flex:1,padding:'12px',borderRadius:8,background:'transparent',border:'1px solid '+t.border,color:t.textSoft,fontSize:14,cursor:'pointer'}} onClick={()=>setPainelOS(null)}>Cancelar</button>
+              <button style={{flex:2,padding:'12px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:14,cursor:'pointer',fontWeight:600,opacity:salvandoOS?0.7:1}} onClick={confirmarOS} disabled={salvandoOS}>
+                {salvandoOS?'Salvando...':'✓ Marcar como concluído'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {isGestor?(
         <>
           <div style={{display:'flex',justifyContent:'flex-end',marginBottom:14}}>

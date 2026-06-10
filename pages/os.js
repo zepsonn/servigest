@@ -21,7 +21,16 @@ const BAIRROS_CURITIBA = [
   'Rebouças','Santa Cândida','Santa Felicidade','Santa Quitéria','Santo Inácio',
   'São Braz','São Francisco','São João','São Lourenço','São Miguel','Seminário',
   'Sítio Cercado','Taboão','Tatuquara','Tingui','Uberaba','Umbará',
-  'Vila Izabel','Vila Leão','Vista Alegre','Xaxim'
+  'Vila Izabel','Vila Leão','Vista Alegre','Xaxim',
+  'Sao Jose dos Pinhais - Centro','Sao Jose dos Pinhais - Afonso Pena','Sao Jose dos Pinhais - Borda do Campo',
+  'Sao Jose dos Pinhais - Costeira','Sao Jose dos Pinhais - Guatupe','Sao Jose dos Pinhais - Ipelandia',
+  'Sao Jose dos Pinhais - Jardim Elite','Sao Jose dos Pinhais - Jurema','Sao Jose dos Pinhais - Quissisana',
+  'Sao Jose dos Pinhais - Roça Grande','Sao Jose dos Pinhais - Zacarias',
+  'Piraquara - Centro','Piraquara - Guarituba','Piraquara - Jardim Primavera','Piraquara - Moradias Belém',
+  'Colombo - Centro','Colombo - Atuba','Colombo - Bacacheri','Colombo - Maracanã','Colombo - Monza',
+  'Colombo - Palmital','Colombo - Roça Grande','Colombo - São Gabriel',
+  'Araucária - Centro','Araucária - Cachoeira','Araucária - Costeira','Araucária - Iguaçu',
+  'Araucária - Jardim Ipê','Araucária - Sabiá','Araucária - Thomaz Coelho'
 ].sort()
 
 const FORM0 = {
