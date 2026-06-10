@@ -144,19 +144,33 @@ export default function Dashboard(){
 
   function AgendaCard({os, destaque}) {
     const data = os.data_entrada ? new Date(os.data_entrada+'T12:00') : null
+    const diasRestantes = data ? Math.round((data - new Date().setHours(0,0,0,0)) / 86400000) : null
     return (
       <div style={{borderRadius:10,marginBottom:8,background:destaque?(t.dark?'#1a2a1a':'#f0faf0'):t.bgSidebar,border:destaque?'1px solid '+t.accent:'1px solid '+t.borderSoft,overflow:'hidden'}}>
-        <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px'}}>
-          <div style={{textAlign:'center',flexShrink:0,width:34}}>
-            <div style={{fontSize:destaque?18:14,fontWeight:700,color:destaque?t.accent:t.textSoft,lineHeight:1}}>{data?data.getDate():'—'}</div>
+        <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px'}}>
+          {/* data */}
+          <div style={{textAlign:'center',flexShrink:0,width:36}}>
+            <div style={{fontSize:destaque?18:15,fontWeight:700,color:destaque?t.accent:t.textSoft,lineHeight:1}}>{data?data.getDate():'—'}</div>
             <div style={{fontSize:9,color:t.textSoft,textTransform:'uppercase'}}>{data?data.toLocaleDateString('pt-BR',{month:'short'}):''}</div>
           </div>
-          <div style={{width:2,height:32,background:destaque?t.accent:t.borderSoft,borderRadius:99,flexShrink:0}}/>
+          <div style={{width:2,height:34,background:destaque?t.accent:t.borderSoft,borderRadius:99,flexShrink:0}}/>
+          {/* nome + info */}
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.cliente_nome||'—'}</div>
-            <div style={{fontSize:11,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.produto||os.servico||'—'}{os.bairro?' · '+os.bairro:''}{os.periodo?' · '+(PERIODOS[os.periodo]||os.periodo):''}</div>
+            <div style={{fontWeight:600,color:t.text,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.cliente_nome||'—'}</div>
+            <div style={{fontSize:11,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.produto||os.servico||'—'}{os.bairro?' · '+os.bairro:''}</div>
+            {isMobile&&<div style={{fontSize:11,color:destaque?t.accent:t.textSoft,marginTop:1}}>{os.periodo?(PERIODOS[os.periodo]||os.periodo):''}{os.usuarios?.nome?' · '+os.usuarios.nome:''}</div>}
           </div>
-          <button onClick={()=>{setPainelOS(os);setPainelValor(os.valor||0);setPainelObs(os.observacoes||'')}} style={{padding:'6px 12px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:12,cursor:'pointer',fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>
+          {/* badges — so no desktop */}
+          {!isMobile&&(
+            <div style={{textAlign:'right',flexShrink:0}}>
+              {os.periodo&&<div style={{fontSize:11,fontWeight:600,color:destaque?t.accent:t.textSoft}}>{PERIODOS[os.periodo]||os.periodo}</div>}
+              <div style={{fontSize:11,color:t.textSoft}}>{os.usuarios?.nome||'Sem técnico'}</div>
+            </div>
+          )}
+          {!isMobile&&diasRestantes!==null&&diasRestantes>0&&<div style={{background:t.bgCard,border:'1px solid '+t.borderSoft,borderRadius:6,padding:'2px 8px',fontSize:11,color:t.textSoft,flexShrink:0}}>em {diasRestantes}d</div>}
+          {!isMobile&&destaque&&<div style={{background:t.accent,color:'#fff',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:600,flexShrink:0}}>HOJE</div>}
+          {/* botao confirmar */}
+          <button onClick={()=>{setPainelOS(os);setPainelValor(os.valor||0);setPainelObs(os.observacoes||'')}} style={{padding:'8px 14px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:12,cursor:'pointer',fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>
             ✓ Confirmar
           </button>
         </div>
@@ -164,116 +178,7 @@ export default function Dashboard(){
     )
   }
 
-  mport { useEffect, useState } from 'react'
-import Layout from '../components/Layout'
-import { supabase } from '../lib/supabase'
-import { useTheme } from '../lib/theme'
-import Link from 'next/link'
-
-function useIsMobile(){ const [m,setM]=useState(false); useEffect(()=>{const c=()=>setM(window.innerWidth<768);c();window.addEventListener('resize',c);return()=>window.removeEventListener('resize',c)},[]);return m }
-const badgeColors={em_andamento:['#FAEEDA','#854F0B'],concluido:['#EAF3DE','#3B6D11'],concluida:['#EAF3DE','#3B6D11']}
-function Badge({s}){const[bg,c]=badgeColors[s]||['#F1EFE8','#5F5E5A'];return <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:500,background:bg,color:c}}>{(s||'').replace('_',' ')}</span>}
-
-const CARDS_DEFAULT = [
-  {id:'faturamento',label:'Faturamento',tamanho:'medio'},
-  {id:'despesas',label:'Despesas',tamanho:'medio'},
-  {id:'lucro',label:'Lucro',tamanho:'medio'},
-  {id:'ticket',label:'Ticket médio',tamanho:'medio'},
-  {id:'clientes',label:'Clientes ativos',tamanho:'pequeno'},
-  {id:'andamento',label:'Em andamento',tamanho:'pequeno'},
-  {id:'concluidas',label:'Concluídas',tamanho:'pequeno'},
-  {id:'hoje',label:'Agenda hoje',tamanho:'pequeno'},
-  {id:'agenda',label:'Agenda de serviços',tamanho:'largo'},
-  {id:'grafico',label:'Receita por mês',tamanho:'largo'},
-]
-
-function loadConfig(){
-  try{ const c=JSON.parse(localStorage.getItem('db_cfg2')); return c&&c.length?c:CARDS_DEFAULT }
-  catch{ return CARDS_DEFAULT }
-}
-function saveConfig(c){ localStorage.setItem('db_cfg2',JSON.stringify(c)) }
-
-const PERIODOS = {manha:'Manhã',tarde:'Tarde',noite:'Noite'}
-
-export default function Dashboard(){
-  const [user,setUser]=useState(null)
-  const [stats,setStats]=useState({clientes:0,hoje:0,andamento:0,concluidas:0,fat:0,desp:0,meses:[]})
-  const [osHoje,setOsHoje]=useState([])
-  const [osFuturas,setOsFuturas]=useState([])
-  const [config,setConfig]=useState(CARDS_DEFAULT)
-  const [draft,setDraft]=useState(CARDS_DEFAULT)
-  const [editando,setEditando]=useState(false)
-  const [dragIdx,setDragIdx]=useState(null)
-  const [overIdx,setOverIdx]=useState(null)
-  const {t}=useTheme()
-  const isMobile=useIsMobile()
-
-  useEffect(()=>{
-    const u=JSON.parse(localStorage.getItem('servigest_user')||'{}')
-    setUser(u); loadData(u)
-    const c=loadConfig(); setConfig(c); setDraft([...c])
-  },[])
-
-  async function loadData(u){
-    const hoje=new Date().toISOString().split('T')[0]
-    const em7dias=new Date(Date.now()+7*24*60*60*1000).toISOString().split('T')[0]
-    if(u.role==='gestor'){
-      const [{count:cl},{data:os},{data:desp},{data:proximas}]=await Promise.all([
-        supabase.from('clientes').select('*',{count:'exact',head:true}).eq('ativo',true),
-        supabase.from('ordens_servico').select('valor,status,data_entrada,data_conclusao'),
-        supabase.from('despesas').select('valor'),
-        supabase.from('ordens_servico').select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,usuarios(nome)')
-          .eq('status','em_andamento')
-          .lte('data_entrada',em7dias)
-          .order('data_entrada'),
-      ])
-      const concl=(os||[]).filter(o=>o.status==='concluida')
-      const fat=concl.reduce((s,o)=>s+Number(o.valor||0),0)
-      const desp2=(desp||[]).reduce((s,d)=>s+Number(d.valor||0),0)
-      const andamento=(os||[]).filter(o=>o.status==='em_andamento').length
-      const pm={}; concl.forEach(o=>{const m=(o.data_conclusao||o.data_entrada)?.slice(0,7);if(m)pm[m]=(pm[m]||0)+Number(o.valor||0)})
-      // separar hoje e futuras
-      const todosProx = proximas||[]
-      setOsHoje(todosProx.filter(o=>o.data_entrada===hoje))
-      setOsFuturas(todosProx.filter(o=>o.data_entrada>hoje))
-      const hojeCount=todosProx.filter(o=>o.data_entrada===hoje).length
-      setStats({clientes:cl||0,hoje:hojeCount,andamento,concluidas:concl.length,fat,desp:desp2,meses:Object.entries(pm).sort().slice(-6)})
-    } else {
-      // tecnico — busca OS vinculadas a ele
-      const { data: proximas } = await supabase
-        .from('ordens_servico')
-        .select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,usuarios(nome)')
-        .eq('tecnico_id', u.id)
-        .eq('status','em_andamento')
-        .order('data_entrada')
-      const todosProx = proximas||[]
-      setOsHoje(todosProx.filter(o=>o.data_entrada===hoje))
-      setOsFuturas(todosProx.filter(o=>o.data_entrada>hoje))
-      setStats(prev=>({...prev,andamento:todosProx.length,hoje:todosProx.filter(o=>o.data_entrada===hoje).length}))
-    }
-  }
-
-  const [painelOS, setPainelOS] = useState(null)
-  const [painelValor, setPainelValor] = useState(0)
-  const [painelObs, setPainelObs] = useState('')
-  const [salvandoOS, setSalvandoOS] = useState(false)
-
-  async function confirmarOS() {
-    if(!painelOS) return
-    setSalvandoOS(true)
-    await supabase.from('ordens_servico').update({
-      status: 'concluida',
-      data_conclusao: new Date().toISOString().split('T')[0],
-      valor: Number(painelValor)||painelOS.valor||0,
-      observacoes: painelObs || painelOS.observacoes,
-    }).eq('id', painelOS.id)
-    setSalvandoOS(false)
-    setPainelOS(null); setPainelValor(0); setPainelObs('')
-    loadData(user)
-  }
-
-  function dgStart(i){setDragIdx(i)}
-  function dgOver(e,i){e.preventDefault();setOverIdx(i)}
+   function dgOver(e,i){e.preventDefault();setOverIdx(i)}
   function dgDrop(e,i){
     e.preventDefault()
     if(dragIdx===null||dragIdx===i){setDragIdx(null);setOverIdx(null);return}
