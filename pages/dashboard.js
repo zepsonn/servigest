@@ -472,4 +472,17 @@ export default function Dashboard(){
           ))}
           {osHoje.length===0&&osFuturas.length===0&&<div style={{fontSize:13,color:t.textSoft,padding:16,textAlign:'center'}}>Nenhum serviço agendado.</div>}
         </>
-      )}
+      )}    </Layout>
+  )
+}
+
+function EditOverlay({card,t,onRemove,onTam}){
+  return <div style={{position:'absolute',top:6,right:6,display:'flex',gap:4,zIndex:10}} onDragStart={e=>e.stopPropagation()}>
+    {['pequeno','medio','largo'].map(tam=>(
+      <button key={tam} onClick={()=>onTam(tam)} style={{padding:'2px 6px',borderRadius:4,border:'1px solid '+(card.tamanho===tam?t.accent:t.border),background:card.tamanho===tam?t.accentSoft:t.bgCard,color:card.tamanho===tam?t.accentDark:t.textSoft,fontSize:10,cursor:'pointer'}}>
+        {tam==='pequeno'?'P':tam==='medio'?'M':'L'}
+      </button>
+    ))}
+    <button onClick={onRemove} style={{padding:'2px 6px',borderRadius:4,border:'1px solid #FCEBEB',background:'#FCEBEB',color:'#A32D2D',fontSize:12,cursor:'pointer',fontWeight:700}}>×</button>
+  </div>
+}
