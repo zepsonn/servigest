@@ -337,24 +337,10 @@ export default function Dashboard(){
               <div key={l} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:'12px 14px'}}><div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>{l}</div><div style={{fontSize:20,fontWeight:700,color:t.text}}>{v}</div></div>
             ))}
           </div>
-          {osHoje.length>0&&<div style={{fontSize:12,fontWeight:700,color:t.accent,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>Hoje</div>}
-          {osHoje.map(o=>(
-            <div key={o.id} style={{background:t.bgCard,border:'1px solid '+t.accent,borderRadius:10,padding:'12px 14px',marginBottom:8}}>
-              <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-                <div style={{fontSize:14,fontWeight:600,color:t.text}}>{o.cliente_nome}</div>
-                <span style={{background:t.accent,color:'#fff',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:600}}>HOJE</span>
-              </div>
-              <div style={{fontSize:12,color:t.textSoft}}>{o.produto||o.servico||'—'}{o.bairro?' · '+o.bairro:''}</div>
-              {o.periodo&&<div style={{fontSize:11,color:t.accent,marginTop:4}}>{PERIODOS[o.periodo]}</div>}
-            </div>
-          ))}
-          {osFuturas.length>0&&<div style={{fontSize:12,fontWeight:700,color:t.textSoft,textTransform:'uppercase',letterSpacing:'.06em',margin:'12px 0 8px'}}>Próximos</div>}
-          {osFuturas.map(o=>(
-            <div key={o.id} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,padding:'12px 14px',marginBottom:8}}>
-              <div style={{fontSize:14,fontWeight:500,color:t.text,marginBottom:2}}>{o.cliente_nome}</div>
-              <div style={{fontSize:12,color:t.textSoft}}>{o.produto||o.servico||'—'} · {o.data_entrada?new Date(o.data_entrada+'T12:00').toLocaleDateString('pt-BR'):''}</div>
-            </div>
-          ))}
+          {osHoje.length>0&&<div style={{fontSize:12,fontWeight:700,color:t.accent,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>Hoje — {osHoje.length} serviço{osHoje.length>1?'s':''}</div>}
+          {osHoje.map(o=><AgendaCard key={o.id} os={o} destaque={true}/>)}
+          {osFuturas.length>0&&<div style={{fontSize:12,fontWeight:700,color:t.textSoft,textTransform:'uppercase',letterSpacing:'.06em',margin:'12px 0 8px'}}>Próximos dias</div>}
+          {osFuturas.map(o=><AgendaCard key={o.id} os={o} destaque={false}/>)}
           {osHoje.length===0&&osFuturas.length===0&&<div style={{fontSize:13,color:t.textSoft,padding:16,textAlign:'center'}}>Nenhum serviço agendado.</div>}
         </>
       )}
