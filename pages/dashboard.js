@@ -209,27 +209,6 @@ export default function Dashboard(){
   function salvar(){setConfig(draft);saveConfig(draft);setEditando(false)}
   function cancelar(){setDraft([...config]);setEditando(false)}
 
-  if(!user) return null
-  const isGestor=user.role==='gestor'
-  const fmt=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
-  const lucro=stats.fat-stats.desp
-  const ticket=stats.concluidas?stats.fat/stats.concluidas:0
-  const maxVal=Math.max(...stats.meses.map(([,v])=>v),1)
-  const ausentes=CARDS_DEFAULT.filter(c=>!draft.find(d=>d.id===c.id))
-
-  const cardVal={
-    faturamento:{v:fmt(stats.fat),sub:'OS concluídas',c:null,hl:false},
-    despesas:{v:fmt(stats.desp),sub:'gastos da empresa',c:'#A32D2D',hl:false},
-    lucro:{v:fmt(lucro),sub:'fat − despesas',c:lucro>=0?t.accent:'#A32D2D',hl:true},
-    ticket:{v:fmt(ticket),sub:'por serviço',c:null,hl:false},
-    clientes:{v:stats.clientes,sub:null,c:null,hl:false},
-    andamento:{v:stats.andamento,sub:null,c:'#854F0B',hl:false},
-    concluidas:{v:stats.concluidas,sub:null,c:'#3B6D11',hl:false},
-    hoje:{v:stats.hoje,sub:'serviços',c:stats.hoje>0?t.accent:null,hl:false},
-  }
-
-  const colSpan=tam=>{ if(isMobile)return'1/-1'; if(tam==='largo')return'1/-1'; if(tam==='medio')return'span 2'; return'span 1' }
-
   const renderCard=(card,idx,edit)=>{
     const d=cardVal[card.id]
     const isDragging=edit&&dragIdx===idx
