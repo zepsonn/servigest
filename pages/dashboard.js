@@ -72,6 +72,18 @@ export default function Dashboard(){
       setOsFuturas(todosProx.filter(o=>o.data_entrada>hoje))
       const hojeCount=todosProx.filter(o=>o.data_entrada===hoje).length
       setStats({clientes:cl||0,hoje:hojeCount,andamento,concluidas:concl.length,fat,desp:desp2,meses:Object.entries(pm).sort().slice(-6)})
+    } else {
+      // tecnico — busca OS vinculadas a ele
+      const { data: proximas } = await supabase
+        .from('ordens_servico')
+        .select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,usuarios(nome)')
+        .eq('tecnico_id', u.id)
+        .eq('status','em_andamento')
+        .order('data_entrada')
+      const todosProx = proximas||[]
+      setOsHoje(todosProx.filter(o=>o.data_entrada===hoje))
+      setOsFuturas(todosProx.filter(o=>o.data_entrada>hoje))
+      setStats(prev=>({...prev,andamento:todosProx.length,hoje:todosProx.filter(o=>o.data_entrada===hoje).length}))
     }
   }
 
