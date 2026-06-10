@@ -426,24 +426,50 @@ export default function Dashboard(){
               <div key={l} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:'12px 14px'}}><div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>{l}</div><div style={{fontSize:20,fontWeight:700,color:t.text}}>{v}</div></div>
             ))}
           </div>
-          {osHoje.length>0&&<div style={{fontSize:12,fontWeight:700,color:t.accent,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>Hoje — {osHoje.length} serviço{osHoje.length>1?'s':''}</div>}
-          {osHoje.map(o=><AgendaCard key={o.id} os={o} destaque={true}/>)}
-          {osFuturas.length>0&&<div style={{fontSize:12,fontWeight:700,color:t.textSoft,textTransform:'uppercase',letterSpacing:'.06em',margin:'12px 0 8px'}}>Próximos dias</div>}
-          {osFuturas.map(o=><AgendaCard key={o.id} os={o} destaque={false}/>)}
+          {osHoje.length>0&&(
+            <div style={{fontSize:12,fontWeight:700,color:t.accent,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>
+              Hoje — {osHoje.length} serviço{osHoje.length>1?'s':''}
+            </div>
+          )}
+          {osHoje.map(o=>(
+            <div key={o.id} style={{background:t.bgCard,border:'1px solid '+t.accent,borderRadius:12,padding:'12px 14px',marginBottom:8}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                <div style={{flex:1,minWidth:0,marginRight:8}}>
+                  <div style={{fontWeight:700,color:t.text,fontSize:15,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
+                  <div style={{fontSize:12,color:t.textSoft,marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.produto||o.servico||'—'}</div>
+                  {o.bairro&&<div style={{fontSize:11,color:t.textSoft,marginTop:1}}>{o.bairro.split(' - ').pop()}</div>}
+                </div>
+                <div style={{textAlign:'right',flexShrink:0}}>
+                  {o.periodo&&<div style={{fontSize:12,fontWeight:600,color:t.accent}}>{PERIODOS[o.periodo]||o.periodo}</div>}
+                  <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:500,background:'#EAF3DE',color:'#3B6D11',marginTop:2}}>HOJE</span>
+                </div>
+              </div>
+              <button onClick={()=>{setPainelOS(o);setPainelValor(o.valor||0);setPainelObs(o.observacoes||'')}}
+                style={{width:'100%',padding:'10px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:14,cursor:'pointer',fontWeight:600}}>
+                ✓ Confirmar serviço
+              </button>
+            </div>
+          ))}
+          {osFuturas.length>0&&(
+            <div style={{fontSize:12,fontWeight:700,color:t.textSoft,textTransform:'uppercase',letterSpacing:'.06em',margin:'12px 0 8px'}}>
+              Próximos dias
+            </div>
+          )}
+          {osFuturas.map(o=>(
+            <div key={o.id} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:'12px 14px',marginBottom:8}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                <div style={{flex:1,minWidth:0,marginRight:8}}>
+                  <div style={{fontWeight:600,color:t.text,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
+                  <div style={{fontSize:12,color:t.textSoft,marginTop:2}}>{o.produto||o.servico||'—'}</div>
+                  {o.bairro&&<div style={{fontSize:11,color:t.textSoft,marginTop:1}}>{o.bairro.split(' - ').pop()}</div>}
+                </div>
+                <div style={{textAlign:'right',flexShrink:0}}>
+                  {o.periodo&&<div style={{fontSize:12,color:t.textSoft}}>{PERIODOS[o.periodo]||o.periodo}</div>}
+                  <div style={{fontSize:11,color:t.textSoft,marginTop:2}}>{o.data_entrada?new Date(o.data_entrada+'T12:00').toLocaleDateString('pt-BR'):''}</div>
+                </div>
+              </div>
+            </div>
+          ))}
           {osHoje.length===0&&osFuturas.length===0&&<div style={{fontSize:13,color:t.textSoft,padding:16,textAlign:'center'}}>Nenhum serviço agendado.</div>}
         </>
       )}
-    </Layout>
-  )
-}
-
-function EditOverlay({card,t,onRemove,onTam}){
-  return <div style={{position:'absolute',top:6,right:6,display:'flex',gap:4,zIndex:10}} onDragStart={e=>e.stopPropagation()}>
-    {['pequeno','medio','largo'].map(tam=>(
-      <button key={tam} onClick={()=>onTam(tam)} style={{padding:'2px 6px',borderRadius:4,border:'1px solid '+(card.tamanho===tam?t.accent:t.border),background:card.tamanho===tam?t.accentSoft:t.bgCard,color:card.tamanho===tam?t.accentDark:t.textSoft,fontSize:10,cursor:'pointer'}}>
-        {tam==='pequeno'?'P':tam==='medio'?'M':'L'}
-      </button>
-    ))}
-    <button onClick={onRemove} style={{padding:'2px 6px',borderRadius:4,border:'1px solid #FCEBEB',background:'#FCEBEB',color:'#A32D2D',fontSize:12,cursor:'pointer',fontWeight:700}}>×</button>
-  </div>
-}
