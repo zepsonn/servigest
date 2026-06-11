@@ -34,6 +34,7 @@ export default function Dashboard(){
   const [stats,setStats]=useState({clientes:0,hoje:0,andamento:0,concluidas:0,fat:0,desp:0,meses:[]})
   const [osHoje,setOsHoje]=useState([])
   const [osFuturas,setOsFuturas]=useState([])
+  const [osAtrasadas,setOsAtrasadas]=useState([])
   const [config,setConfig]=useState(CARDS_DEFAULT)
   const [draft,setDraft]=useState(CARDS_DEFAULT)
   const [editando,setEditando]=useState(false)
@@ -56,9 +57,8 @@ export default function Dashboard(){
         supabase.from('clientes').select('*',{count:'exact',head:true}).eq('ativo',true),
         supabase.from('ordens_servico').select('valor,status,data_entrada,data_conclusao'),
         supabase.from('despesas').select('valor'),
-        supabase.from('ordens_servico').select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,usuarios(nome)')
+        supabase.from('ordens_servico').select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,valor,observacoes,usuarios(nome)')
           .eq('status','em_andamento')
-          .lte('data_entrada',em7dias)
           .order('data_entrada'),
       ])
       const concl=(os||[]).filter(o=>o.status==='concluida')
@@ -66,8 +66,9 @@ export default function Dashboard(){
       const desp2=(desp||[]).reduce((s,d)=>s+Number(d.valor||0),0)
       const andamento=(os||[]).filter(o=>o.status==='em_andamento').length
       const pm={}; concl.forEach(o=>{const m=(o.data_conclusao||o.data_entrada)?.slice(0,7);if(m)pm[m]=(pm[m]||0)+Number(o.valor||0)})
-      // separar hoje e futuras
+      // separar atrasadas, hoje e futuras
       const todosProx = proximas||[]
+      setOsAtrasadas(todosProx.filter(o=>o.data_entrada&&o.data_entrada<hoje))
       setOsHoje(todosProx.filter(o=>o.data_entrada===hoje))
       setOsFuturas(todosProx.filter(o=>o.data_entrada>hoje))
       const hojeCount=todosProx.filter(o=>o.data_entrada===hoje).length
@@ -76,11 +77,12 @@ export default function Dashboard(){
       // tecnico — busca OS vinculadas a ele
       const { data: proximas } = await supabase
         .from('ordens_servico')
-        .select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,usuarios(nome)')
+        .select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,valor,observacoes,usuarios(nome)')
         .eq('tecnico_id', u.id)
         .eq('status','em_andamento')
         .order('data_entrada')
       const todosProx = proximas||[]
+      setOsAtrasadas(todosProx.filter(o=>o.data_entrada&&o.data_entrada<hoje))
       setOsHoje(todosProx.filter(o=>o.data_entrada===hoje))
       setOsFuturas(todosProx.filter(o=>o.data_entrada>hoje))
       setStats(prev=>({...prev,andamento:todosProx.length,hoje:todosProx.filter(o=>o.data_entrada===hoje).length}))
@@ -142,20 +144,23 @@ export default function Dashboard(){
 
   const colSpan=tam=>{ if(isMobile)return'1/-1'; if(tam==='largo')return'1/-1'; if(tam==='medio')return'span 2'; return'span 1' }
 
-  function AgendaCard({os, destaque}) {
+  function AgendaCard({os, destaque, atrasado}) {
     const data = os.data_entrada ? new Date(os.data_entrada+'T12:00') : null
     const diasRestantes = data ? Math.round((data - new Date().setHours(0,0,0,0)) / 86400000) : null
+    const corDestaque = atrasado ? '#A32D2D' : t.accent
+    const bgDestaque = atrasado ? (t.dark?'#2a1a1a':'#fdf0f0') : (t.dark?'#1a2a1a':'#f0faf0')
     // bairro curto — tira o prefixo da cidade (ex: "Sao Jose dos Pinhais - Afonso Pena" → "Afonso Pena")
     const bairroShort = os.bairro ? os.bairro.split(' - ').pop() : ''
 
     if(isMobile) return (
-      <div style={{borderRadius:10,marginBottom:8,background:destaque?(t.dark?'#1a2a1a':'#f0faf0'):t.bgSidebar,border:destaque?'1px solid '+t.accent:'1px solid '+t.borderSoft}}>
+      <div style={{borderRadius:10,marginBottom:8,background:destaque?bgDestaque:t.bgSidebar,border:destaque?'1px solid '+corDestaque:'1px solid '+t.borderSoft}}>
         <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px'}}>
+          {atrasado&&<span style={{fontSize:14,flexShrink:0}}>⚠</span>}
           <div style={{textAlign:'center',flexShrink:0,width:32}}>
-            <div style={{fontSize:16,fontWeight:700,color:destaque?t.accent:t.textSoft,lineHeight:1}}>{data?data.getDate():'—'}</div>
+            <div style={{fontSize:16,fontWeight:700,color:destaque?corDestaque:t.textSoft,lineHeight:1}}>{data?data.getDate():'—'}</div>
             <div style={{fontSize:9,color:t.textSoft,textTransform:'uppercase'}}>{data?data.toLocaleDateString('pt-BR',{month:'short'}):''}</div>
           </div>
-          <div style={{width:2,height:30,background:destaque?t.accent:t.borderSoft,borderRadius:99,flexShrink:0}}/>
+          <div style={{width:2,height:30,background:destaque?corDestaque:t.borderSoft,borderRadius:99,flexShrink:0}}/>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.cliente_nome||'—'}</div>
             <div style={{fontSize:11,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
@@ -170,24 +175,26 @@ export default function Dashboard(){
     )
 
     // DESKTOP
+    const diasAtras = atrasado && data ? Math.abs(diasRestantes) : null
     return (
-      <div style={{borderRadius:10,marginBottom:8,background:destaque?(t.dark?'#1a2a1a':'#f0faf0'):t.bgSidebar,border:destaque?'1px solid '+t.accent:'1px solid '+t.borderSoft,overflow:'hidden'}}>
+      <div style={{borderRadius:10,marginBottom:8,background:destaque?bgDestaque:t.bgSidebar,border:destaque?'1px solid '+corDestaque:'1px solid '+t.borderSoft,overflow:'hidden'}}>
         <div style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px'}}>
           <div style={{textAlign:'center',flexShrink:0,width:44}}>
-            <div style={{fontSize:destaque?20:16,fontWeight:700,color:destaque?t.accent:t.textSoft,lineHeight:1}}>{data?data.getDate():'—'}</div>
+            <div style={{fontSize:destaque?20:16,fontWeight:700,color:destaque?corDestaque:t.textSoft,lineHeight:1}}>{data?data.getDate():'—'}</div>
             <div style={{fontSize:10,color:t.textSoft,textTransform:'uppercase'}}>{data?data.toLocaleDateString('pt-BR',{month:'short'}):''}</div>
           </div>
-          <div style={{width:2,height:36,background:destaque?t.accent:t.borderSoft,borderRadius:99,flexShrink:0}}/>
+          <div style={{width:2,height:36,background:destaque?corDestaque:t.borderSoft,borderRadius:99,flexShrink:0}}/>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.cliente_nome||'—'}</div>
             <div style={{fontSize:11,color:t.textSoft,marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.produto||os.servico||'—'}{os.bairro?' · '+os.bairro:''}</div>
           </div>
           <div style={{textAlign:'right',flexShrink:0}}>
-            {os.periodo&&<div style={{fontSize:11,fontWeight:600,color:destaque?t.accent:t.textSoft,marginBottom:2}}>{PERIODOS[os.periodo]||os.periodo}</div>}
+            {os.periodo&&<div style={{fontSize:11,fontWeight:600,color:destaque?corDestaque:t.textSoft,marginBottom:2}}>{PERIODOS[os.periodo]||os.periodo}</div>}
             <div style={{fontSize:11,color:t.textSoft}}>{os.usuarios?.nome||'Sem técnico'}</div>
           </div>
-          {diasRestantes!==null&&diasRestantes>0&&<div style={{background:t.bgCard,border:'1px solid '+t.borderSoft,borderRadius:6,padding:'2px 8px',fontSize:11,color:t.textSoft,flexShrink:0}}>em {diasRestantes}d</div>}
-          {destaque&&<div style={{background:t.accent,color:'#fff',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:600,flexShrink:0}}>HOJE</div>}
+          {atrasado&&diasAtras>0&&<div style={{background:'#FCEBEB',border:'1px solid #f0c0c0',borderRadius:6,padding:'2px 8px',fontSize:11,color:'#A32D2D',flexShrink:0,fontWeight:600}}>há {diasAtras}d</div>}
+          {!atrasado&&diasRestantes!==null&&diasRestantes>0&&<div style={{background:t.bgCard,border:'1px solid '+t.borderSoft,borderRadius:6,padding:'2px 8px',fontSize:11,color:t.textSoft,flexShrink:0}}>em {diasRestantes}d</div>}
+          {atrasado?<div style={{background:'#A32D2D',color:'#fff',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:600,flexShrink:0}}>ATRASADO</div>:(destaque&&<div style={{background:t.accent,color:'#fff',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:600,flexShrink:0}}>HOJE</div>)}
           <button onClick={()=>{setPainelOS(os);setPainelValor(os.valor||0);setPainelObs(os.observacoes||'')}} style={{padding:'5px 12px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:11,cursor:'pointer',fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>
             ✓ Confirmar
           </button>
@@ -226,12 +233,18 @@ export default function Dashboard(){
             <Link href="/os" style={{fontSize:11,padding:'5px 10px',borderRadius:8,border:'1px solid '+t.border,color:t.text,background:t.bgSidebar}}>Ver OS</Link>
           </div>
           <div style={{padding:'12px 16px'}}>
-            {osHoje.length===0&&osFuturas.length===0&&(
+            {osAtrasadas.length===0&&osHoje.length===0&&osFuturas.length===0&&(
               <div style={{fontSize:13,color:t.textSoft,textAlign:'center',padding:16}}>Nenhum serviço agendado.</div>
+            )}
+            {osAtrasadas.length>0&&(
+              <>
+                <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:'#A32D2D',marginBottom:8,letterSpacing:'.06em'}}>⚠ Atrasados — {osAtrasadas.length} serviço{osAtrasadas.length>1?'s':''}</div>
+                {osAtrasadas.map(o=><AgendaCard key={o.id} os={o} destaque={true} atrasado={true}/>)}
+              </>
             )}
             {osHoje.length>0&&(
               <>
-                <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:t.accent,marginBottom:8,letterSpacing:'.06em'}}>Hoje — {osHoje.length} serviço{osHoje.length>1?'s':''}</div>
+                <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:t.accent,margin:osAtrasadas.length>0?'12px 0 8px':'0 0 8px',letterSpacing:'.06em'}}>Hoje — {osHoje.length} serviço{osHoje.length>1?'s':''}</div>
                 {osHoje.map(o=><AgendaCard key={o.id} os={o} destaque={true}/>)}
               </>
             )}
@@ -367,8 +380,33 @@ export default function Dashboard(){
               <div key={l} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:'12px 14px'}}><div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>{l}</div><div style={{fontSize:20,fontWeight:700,color:t.text}}>{v}</div></div>
             ))}
           </div>
+          {osAtrasadas.length>0&&(
+            <div style={{fontSize:12,fontWeight:700,color:'#A32D2D',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>
+              ⚠ Atrasados — {osAtrasadas.length} serviço{osAtrasadas.length>1?'s':''}
+            </div>
+          )}
+          {osAtrasadas.map(o=>(
+            <div key={o.id} style={{background:t.dark?'#2a1a1a':'#fdf0f0',border:'1px solid #A32D2D',borderRadius:12,padding:'12px 14px',marginBottom:8}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                <div style={{flex:1,minWidth:0,marginRight:8}}>
+                  <div style={{fontWeight:700,color:t.text,fontSize:15,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
+                  <div style={{fontSize:12,color:t.textSoft,marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.produto||o.servico||'—'}</div>
+                  {o.bairro&&<div style={{fontSize:11,color:t.textSoft,marginTop:1}}>{o.bairro.split(' - ').pop()}</div>}
+                </div>
+                <div style={{textAlign:'right',flexShrink:0}}>
+                  {o.periodo&&<div style={{fontSize:12,fontWeight:600,color:'#A32D2D'}}>{PERIODOS[o.periodo]||o.periodo}</div>}
+                  <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:600,background:'#A32D2D',color:'#fff',marginTop:2}}>ATRASADO</span>
+                  <div style={{fontSize:10,color:t.textSoft,marginTop:2}}>{o.data_entrada?new Date(o.data_entrada+'T12:00').toLocaleDateString('pt-BR'):''}</div>
+                </div>
+              </div>
+              <button onClick={()=>{setPainelOS(o);setPainelValor(o.valor||0);setPainelObs(o.observacoes||'')}}
+                style={{width:'100%',padding:'10px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:14,cursor:'pointer',fontWeight:600}}>
+                ✓ Confirmar serviço
+              </button>
+            </div>
+          ))}
           {osHoje.length>0&&(
-            <div style={{fontSize:12,fontWeight:700,color:t.accent,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>
+            <div style={{fontSize:12,fontWeight:700,color:t.accent,textTransform:'uppercase',letterSpacing:'.06em',margin:osAtrasadas.length>0?'12px 0 8px':'0 0 8px'}}>
               Hoje — {osHoje.length} serviço{osHoje.length>1?'s':''}
             </div>
           )}
@@ -411,7 +449,7 @@ export default function Dashboard(){
               </div>
             </div>
           ))}
-          {osHoje.length===0&&osFuturas.length===0&&<div style={{fontSize:13,color:t.textSoft,padding:16,textAlign:'center'}}>Nenhum serviço agendado.</div>}
+          {osAtrasadas.length===0&&osHoje.length===0&&osFuturas.length===0&&<div style={{fontSize:13,color:t.textSoft,padding:16,textAlign:'center'}}>Nenhum serviço agendado.</div>}
         </>
       )}    </Layout>
   )
