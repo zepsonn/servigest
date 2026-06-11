@@ -19,6 +19,7 @@ const CARDS_DEFAULT = [
   {id:'hoje',label:'Agenda hoje',tamanho:'pequeno'},
   {id:'agenda',label:'Agenda de serviços',tamanho:'largo'},
   {id:'grafico',label:'Receita por mês',tamanho:'largo'},
+  {id:'comissoes',label:'Comissões técnicos',tamanho:'medio'},
 ]
 
 function loadConfig(){
@@ -46,15 +47,23 @@ export default function Dashboard(){
     const u=JSON.parse(localStorage.getItem('servigest_user')||'{}')
     setUser(u); loadData(u)
     const c=loadConfig(); setConfig(c); setDraft([...c])
+    // carregar tecnicos e comissoes
+    supabase.from('usuarios').select('id,nome,comissao_percentual').eq('ativo',true).then(({data})=>{
+      if(data){
+        setTecnicos(data)
+        const map={}; data.forEach(t=>{map[t.id]=t.comissao_percentual||0}); setComissoes(map)
+      }
+    })
   },[])
 
   async function loadData(u){
     const hoje=new Date().toISOString().split('T')[0]
     const em7dias=new Date(Date.now()+7*24*60*60*1000).toISOString().split('T')[0]
     if(u.role==='gestor'){
-      const [{count:cl},{data:os},{data:desp},{data:proximas}]=await Promise.all([
+      const [{count:cl},{data:os},{data:osComissao},{data:desp},{data:proximas}]=await Promise.all([
         supabase.from('clientes').select('*',{count:'exact',head:true}).eq('ativo',true),
         supabase.from('ordens_servico').select('valor,status,data_entrada,data_conclusao'),
+        supabase.from('ordens_servico').select('valor_mao_obra,tecnico_id,usuarios(nome,comissao_percentual)').eq('status','concluida'),
         supabase.from('despesas').select('valor'),
         supabase.from('ordens_servico').select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,valor,observacoes,usuarios(nome)')
           .eq('status','em_andamento')
@@ -71,7 +80,16 @@ export default function Dashboard(){
       setOsHoje(todosProx.filter(o=>o.data_entrada===hoje))
       setOsFuturas(todosProx.filter(o=>o.data_entrada>hoje))
       const hojeCount=todosProx.filter(o=>o.data_entrada===hoje).length
-      setStats({clientes:cl||0,hoje:hojeCount,andamento,concluidas:concl.length,fat,desp:desp2,meses:Object.entries(pm).sort().slice(-6)})
+      // calcular comissoes por tecnico
+      const comMap={}
+      ;(osComissao||[]).forEach(o=>{
+        const nome=o.usuarios?.nome; const pct=o.usuarios?.comissao_percentual||0
+        if(nome&&pct>0){
+          if(!comMap[nome])comMap[nome]={nome,pct,total:0}
+          comMap[nome].total+=Number(o.valor_mao_obra||0)*pct/100
+        }
+      })
+      setStats({clientes:cl||0,hoje:hojeCount,andamento,concluidas:concl.length,fat,desp:desp2,meses:Object.entries(pm).sort().slice(-6),comissoes:Object.values(comMap)})
     } else {
       // tecnico — busca OS vinculadas a ele
       const { data: proximas } = await supabase
@@ -89,8 +107,11 @@ export default function Dashboard(){
 
   const [painelOS, setPainelOS] = useState(null)
   const [painelValor, setPainelValor] = useState(0)
+  const [painelMaoObra, setPainelMaoObra] = useState(0)
   const [painelObs, setPainelObs] = useState('')
   const [salvandoOS, setSalvandoOS] = useState(false)
+  const [tecnicos, setTecnicos] = useState([])
+  const [comissoes, setComissoes] = useState({})
 
   async function confirmarOS() {
     if(!painelOS) return
@@ -99,10 +120,11 @@ export default function Dashboard(){
       status: 'concluida',
       data_conclusao: new Date().toISOString().split('T')[0],
       valor: Number(painelValor)||painelOS.valor||0,
+      valor_mao_obra: Number(painelMaoObra)||0,
       observacoes: painelObs || painelOS.observacoes,
     }).eq('id', painelOS.id)
     setSalvandoOS(false)
-    setPainelOS(null); setPainelValor(0); setPainelObs('')
+    setPainelOS(null); setPainelValor(0); setPainelMaoObra(0); setPainelObs('')
     loadData(user)
   }
 
@@ -251,6 +273,34 @@ export default function Dashboard(){
       )
     }
 
+    // COMISSÕES
+    if(card.id==='comissoes'){
+      const lista = stats.comissoes||[]
+      return (
+        <div key={card.id} {...dragProps} style={baseStyle}>
+          {edit&&<EditOverlay card={card} t={t} onRemove={()=>remover(card.id)} onTam={tam=>setTam(card.id,tam)}/>}
+          <div style={{padding:'14px 18px',borderBottom:'1px solid '+t.borderSoft}}>
+            <span style={{fontSize:14,fontWeight:600,color:t.text}}>Comissões técnicos</span>
+          </div>
+          <div style={{padding:'14px 18px'}}>
+            {lista.length===0&&<div style={{fontSize:13,color:t.textSoft}}>Nenhuma comissão registrada.</div>}
+            {lista.map(c=>(
+              <div key={c.nome} style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,padding:'10px 12px',borderRadius:8,background:t.bgSidebar,border:'1px solid '+t.borderSoft}}>
+                <div>
+                  <div style={{fontWeight:600,color:t.text,fontSize:13}}>{c.nome}</div>
+                  <div style={{fontSize:11,color:t.textSoft,marginTop:1}}>{c.pct}% de mão de obra</div>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{fontSize:16,fontWeight:700,color:t.accent}}>{fmt(c.total)}</div>
+                  <div style={{fontSize:11,color:t.textSoft}}>a pagar</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
     // GRÁFICO
     if(card.id==='grafico'){
       return (
@@ -298,9 +348,23 @@ export default function Dashboard(){
             <div style={{fontSize:15,fontWeight:600,color:t.text,marginBottom:4}}>Confirmar serviço</div>
             <div style={{fontSize:13,color:t.textSoft,marginBottom:16}}>{painelOS.cliente_nome} · {painelOS.produto||painelOS.servico||'—'}</div>
             <div style={{marginBottom:12}}>
-              <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>Valor cobrado (R$)</label>
+              <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>Valor total cobrado (R$)</label>
               <input type="number" style={{width:'100%',padding:'10px',borderRadius:8,border:'1px solid '+t.border,fontSize:16,fontFamily:'inherit',background:t.bgInput,color:t.text,fontWeight:600}} value={painelValor} onChange={e=>setPainelValor(e.target.value)}/>
             </div>
+            {(comissoes[painelOS.tecnico_id]||0)>0&&(
+              <div style={{marginBottom:12}}>
+                <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>
+                  Mão de obra (R$) — {comissoes[painelOS.tecnico_id]}% para {painelOS.usuarios?.nome||'técnico'}
+                </label>
+                <input type="number" style={{width:'100%',padding:'10px',borderRadius:8,border:'1px solid '+t.accent,fontSize:16,fontFamily:'inherit',background:t.bgInput,color:t.text,fontWeight:600}} value={painelMaoObra} onChange={e=>setPainelMaoObra(e.target.value)} placeholder="0"/>
+                {Number(painelMaoObra)>0&&(
+                  <div style={{display:'flex',justifyContent:'space-between',marginTop:6,padding:'8px 10px',borderRadius:8,background:t.bgSidebar,fontSize:12}}>
+                    <span style={{color:t.textSoft}}>Para {painelOS.usuarios?.nome}: <strong style={{color:t.accent}}>R$ {(Number(painelMaoObra)*comissoes[painelOS.tecnico_id]/100).toFixed(2)}</strong></span>
+                    <span style={{color:t.textSoft}}>Para empresa: <strong style={{color:t.text}}>R$ {(Number(painelMaoObra)*(1-comissoes[painelOS.tecnico_id]/100)).toFixed(2)}</strong></span>
+                  </div>
+                )}
+              </div>
+            )}
             <div style={{marginBottom:16}}>
               <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>Observações</label>
               <textarea style={{width:'100%',padding:'10px',borderRadius:8,border:'1px solid '+t.border,fontSize:14,fontFamily:'inherit',background:t.bgInput,color:t.text,minHeight:60,resize:'vertical'}} value={painelObs} onChange={e=>setPainelObs(e.target.value)} placeholder="Ex: peças trocadas, garantia..."/>
