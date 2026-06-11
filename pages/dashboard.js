@@ -65,7 +65,7 @@ export default function Dashboard(){
         supabase.from('ordens_servico').select('valor,status,data_entrada,data_conclusao'),
         supabase.from('ordens_servico').select('valor_mao_obra,tecnico_id,usuarios(nome,comissao_percentual)').eq('status','concluida'),
         supabase.from('despesas').select('valor'),
-        supabase.from('ordens_servico').select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,valor,observacoes,usuarios(nome)')
+        supabase.from('ordens_servico').select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,valor,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
           .eq('status','em_andamento')
           .lte('data_entrada',em7dias)
           .order('data_entrada'),
@@ -94,7 +94,7 @@ export default function Dashboard(){
       // tecnico — busca OS vinculadas a ele
       const { data: proximas } = await supabase
         .from('ordens_servico')
-        .select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,valor,observacoes,usuarios(nome)')
+        .select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,valor,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
         .eq('tecnico_id', u.id)
         .eq('status','em_andamento')
         .order('data_entrada')
@@ -351,16 +351,16 @@ export default function Dashboard(){
               <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>Valor total cobrado (R$)</label>
               <input type="number" style={{width:'100%',padding:'10px',borderRadius:8,border:'1px solid '+t.border,fontSize:16,fontFamily:'inherit',background:t.bgInput,color:t.text,fontWeight:600}} value={painelValor} onChange={e=>setPainelValor(e.target.value)}/>
             </div>
-            {(comissoes[painelOS.tecnico_id]||0)>0&&(
+            {(painelOS.usuarios?.comissao_percentual||0)>0&&(
               <div style={{marginBottom:12}}>
                 <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>
-                  Mão de obra (R$) — {comissoes[painelOS.tecnico_id]}% para {painelOS.usuarios?.nome||'técnico'}
+                  Mão de obra (R$) — {painelOS.usuarios?.comissao_percentual}% para {painelOS.usuarios?.nome||'técnico'}
                 </label>
                 <input type="number" style={{width:'100%',padding:'10px',borderRadius:8,border:'1px solid '+t.accent,fontSize:16,fontFamily:'inherit',background:t.bgInput,color:t.text,fontWeight:600}} value={painelMaoObra} onChange={e=>setPainelMaoObra(e.target.value)} placeholder="0"/>
                 {Number(painelMaoObra)>0&&(
                   <div style={{display:'flex',justifyContent:'space-between',marginTop:6,padding:'8px 10px',borderRadius:8,background:t.bgSidebar,fontSize:12}}>
-                    <span style={{color:t.textSoft}}>Para {painelOS.usuarios?.nome}: <strong style={{color:t.accent}}>R$ {(Number(painelMaoObra)*comissoes[painelOS.tecnico_id]/100).toFixed(2)}</strong></span>
-                    <span style={{color:t.textSoft}}>Para empresa: <strong style={{color:t.text}}>R$ {(Number(painelMaoObra)*(1-comissoes[painelOS.tecnico_id]/100)).toFixed(2)}</strong></span>
+                    <span style={{color:t.textSoft}}>Para {painelOS.usuarios?.nome}: <strong style={{color:t.accent}}>R$ {(Number(painelMaoObra)*(painelOS.usuarios?.comissao_percentual||0)/100).toFixed(2)}</strong></span>
+                    <span style={{color:t.textSoft}}>Para empresa: <strong style={{color:t.text}}>R$ {(Number(painelMaoObra)*(1-(painelOS.usuarios?.comissao_percentual||0)/100)).toFixed(2)}</strong></span>
                   </div>
                 )}
               </div>
