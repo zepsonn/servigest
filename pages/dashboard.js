@@ -34,7 +34,6 @@ export default function Dashboard(){
   const [stats,setStats]=useState({clientes:0,hoje:0,andamento:0,concluidas:0,fat:0,desp:0,meses:[]})
   const [osHoje,setOsHoje]=useState([])
   const [osFuturas,setOsFuturas]=useState([])
-  const [osAtrasadas,setOsAtrasadas]=useState([])
   const [config,setConfig]=useState(CARDS_DEFAULT)
   const [draft,setDraft]=useState(CARDS_DEFAULT)
   const [editando,setEditando]=useState(false)
@@ -59,6 +58,7 @@ export default function Dashboard(){
         supabase.from('despesas').select('valor'),
         supabase.from('ordens_servico').select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,valor,observacoes,usuarios(nome)')
           .eq('status','em_andamento')
+          .lte('data_entrada',em7dias)
           .order('data_entrada'),
       ])
       const concl=(os||[]).filter(o=>o.status==='concluida')
@@ -66,9 +66,8 @@ export default function Dashboard(){
       const desp2=(desp||[]).reduce((s,d)=>s+Number(d.valor||0),0)
       const andamento=(os||[]).filter(o=>o.status==='em_andamento').length
       const pm={}; concl.forEach(o=>{const m=(o.data_conclusao||o.data_entrada)?.slice(0,7);if(m)pm[m]=(pm[m]||0)+Number(o.valor||0)})
-      // separar atrasadas, hoje e futuras
+      // separar hoje e futuras
       const todosProx = proximas||[]
-      setOsAtrasadas(todosProx.filter(o=>o.data_entrada&&o.data_entrada<hoje))
       setOsHoje(todosProx.filter(o=>o.data_entrada===hoje))
       setOsFuturas(todosProx.filter(o=>o.data_entrada>hoje))
       const hojeCount=todosProx.filter(o=>o.data_entrada===hoje).length
@@ -82,7 +81,6 @@ export default function Dashboard(){
         .eq('status','em_andamento')
         .order('data_entrada')
       const todosProx = proximas||[]
-      setOsAtrasadas(todosProx.filter(o=>o.data_entrada&&o.data_entrada<hoje))
       setOsHoje(todosProx.filter(o=>o.data_entrada===hoje))
       setOsFuturas(todosProx.filter(o=>o.data_entrada>hoje))
       setStats(prev=>({...prev,andamento:todosProx.length,hoje:todosProx.filter(o=>o.data_entrada===hoje).length}))
@@ -233,18 +231,12 @@ export default function Dashboard(){
             <Link href="/os" style={{fontSize:11,padding:'5px 10px',borderRadius:8,border:'1px solid '+t.border,color:t.text,background:t.bgSidebar}}>Ver OS</Link>
           </div>
           <div style={{padding:'12px 16px'}}>
-            {osAtrasadas.length===0&&osHoje.length===0&&osFuturas.length===0&&(
+            {osHoje.length===0&&osFuturas.length===0&&(
               <div style={{fontSize:13,color:t.textSoft,textAlign:'center',padding:16}}>Nenhum serviço agendado.</div>
-            )}
-            {osAtrasadas.length>0&&(
-              <>
-                <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:'#A32D2D',marginBottom:8,letterSpacing:'.06em'}}>⚠ Atrasados — {osAtrasadas.length} serviço{osAtrasadas.length>1?'s':''}</div>
-                {osAtrasadas.map(o=><AgendaCard key={o.id} os={o} destaque={true} atrasado={true}/>)}
-              </>
             )}
             {osHoje.length>0&&(
               <>
-                <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:t.accent,margin:osAtrasadas.length>0?'12px 0 8px':'0 0 8px',letterSpacing:'.06em'}}>Hoje — {osHoje.length} serviço{osHoje.length>1?'s':''}</div>
+                <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:t.accent,marginBottom:8,letterSpacing:'.06em'}}>Hoje — {osHoje.length} serviço{osHoje.length>1?'s':''}</div>
                 {osHoje.map(o=><AgendaCard key={o.id} os={o} destaque={true}/>)}
               </>
             )}
@@ -380,33 +372,8 @@ export default function Dashboard(){
               <div key={l} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:'12px 14px'}}><div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>{l}</div><div style={{fontSize:20,fontWeight:700,color:t.text}}>{v}</div></div>
             ))}
           </div>
-          {osAtrasadas.length>0&&(
-            <div style={{fontSize:12,fontWeight:700,color:'#A32D2D',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>
-              ⚠ Atrasados — {osAtrasadas.length} serviço{osAtrasadas.length>1?'s':''}
-            </div>
-          )}
-          {osAtrasadas.map(o=>(
-            <div key={o.id} style={{background:t.dark?'#2a1a1a':'#fdf0f0',border:'1px solid #A32D2D',borderRadius:12,padding:'12px 14px',marginBottom:8}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
-                <div style={{flex:1,minWidth:0,marginRight:8}}>
-                  <div style={{fontWeight:700,color:t.text,fontSize:15,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
-                  <div style={{fontSize:12,color:t.textSoft,marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.produto||o.servico||'—'}</div>
-                  {o.bairro&&<div style={{fontSize:11,color:t.textSoft,marginTop:1}}>{o.bairro.split(' - ').pop()}</div>}
-                </div>
-                <div style={{textAlign:'right',flexShrink:0}}>
-                  {o.periodo&&<div style={{fontSize:12,fontWeight:600,color:'#A32D2D'}}>{PERIODOS[o.periodo]||o.periodo}</div>}
-                  <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:600,background:'#A32D2D',color:'#fff',marginTop:2}}>ATRASADO</span>
-                  <div style={{fontSize:10,color:t.textSoft,marginTop:2}}>{o.data_entrada?new Date(o.data_entrada+'T12:00').toLocaleDateString('pt-BR'):''}</div>
-                </div>
-              </div>
-              <button onClick={()=>{setPainelOS(o);setPainelValor(o.valor||0);setPainelObs(o.observacoes||'')}}
-                style={{width:'100%',padding:'10px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:14,cursor:'pointer',fontWeight:600}}>
-                ✓ Confirmar serviço
-              </button>
-            </div>
-          ))}
           {osHoje.length>0&&(
-            <div style={{fontSize:12,fontWeight:700,color:t.accent,textTransform:'uppercase',letterSpacing:'.06em',margin:osAtrasadas.length>0?'12px 0 8px':'0 0 8px'}}>
+            <div style={{fontSize:12,fontWeight:700,color:t.accent,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>
               Hoje — {osHoje.length} serviço{osHoje.length>1?'s':''}
             </div>
           )}
@@ -449,7 +416,7 @@ export default function Dashboard(){
               </div>
             </div>
           ))}
-          {osAtrasadas.length===0&&osHoje.length===0&&osFuturas.length===0&&<div style={{fontSize:13,color:t.textSoft,padding:16,textAlign:'center'}}>Nenhum serviço agendado.</div>}
+          {osHoje.length===0&&osFuturas.length===0&&<div style={{fontSize:13,color:t.textSoft,padding:16,textAlign:'center'}}>Nenhum serviço agendado.</div>}
         </>
       )}    </Layout>
   )
