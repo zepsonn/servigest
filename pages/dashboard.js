@@ -35,6 +35,9 @@ export default function Dashboard(){
   const [stats,setStats]=useState({clientes:0,hoje:0,andamento:0,concluidas:0,fat:0,desp:0,meses:[]})
   const [osHoje,setOsHoje]=useState([])
   const [osFuturas,setOsFuturas]=useState([])
+  const [agendaFiltroData,setAgendaFiltroData]=useState('')
+  const [osFiltradas,setOsFiltradas]=useState([])
+  const [buscandoFiltro,setBuscandoFiltro]=useState(false)
   const [config,setConfig]=useState(CARDS_DEFAULT)
   const [draft,setDraft]=useState(CARDS_DEFAULT)
   const [editando,setEditando]=useState(false)
@@ -126,6 +129,18 @@ export default function Dashboard(){
     setSalvandoOS(false)
     setPainelOS(null); setPainelValor(0); setPainelMaoObra(0); setPainelObs('')
     loadData(user)
+  }
+
+  async function buscarPorData(data){
+    if(!data){setOsFiltradas([]);setAgendaFiltroData('');return}
+    setBuscandoFiltro(true)
+    const {data:os}=await supabase.from('ordens_servico')
+      .select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,valor,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
+      .eq('data_entrada',data)
+      .order('cliente_nome')
+    setOsFiltradas(os||[])
+    setAgendaFiltroData(data)
+    setBuscandoFiltro(false)
   }
 
   function dgStart(i){setDragIdx(i)}
@@ -248,24 +263,59 @@ export default function Dashboard(){
       return (
         <div key={card.id} {...dragProps} style={baseStyle}>
           {edit&&<EditOverlay card={card} t={t} onRemove={()=>remover(card.id)} onTam={tam=>setTam(card.id,tam)}/>}
-          <div style={{padding:'14px 18px',borderBottom:'1px solid '+t.borderSoft,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div style={{padding:'14px 18px',borderBottom:'1px solid '+t.borderSoft,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
             <span style={{fontSize:14,fontWeight:600,color:t.text}}>Agenda de serviços</span>
-            <Link href="/os" style={{fontSize:11,padding:'5px 10px',borderRadius:8,border:'1px solid '+t.border,color:t.text,background:t.bgSidebar}}>Ver OS</Link>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <input type="date" value={agendaFiltroData} onChange={e=>buscarPorData(e.target.value)}
+                style={{padding:'5px 10px',borderRadius:8,border:'1px solid '+t.border,background:t.bgInput,color:t.text,fontSize:12,fontFamily:'inherit',cursor:'pointer'}}/>
+              {agendaFiltroData&&<button onClick={()=>buscarPorData('')} style={{padding:'5px 10px',borderRadius:8,border:'1px solid '+t.border,background:t.bgSidebar,color:t.textSoft,fontSize:12,cursor:'pointer'}}>✕ Limpar</button>}
+              <Link href="/os" style={{fontSize:11,padding:'5px 10px',borderRadius:8,border:'1px solid '+t.border,color:t.text,background:t.bgSidebar}}>Ver OS</Link>
+            </div>
           </div>
           <div style={{padding:'12px 16px'}}>
-            {osHoje.length===0&&osFuturas.length===0&&(
-              <div style={{fontSize:13,color:t.textSoft,textAlign:'center',padding:16}}>Nenhum serviço agendado.</div>
-            )}
-            {osHoje.length>0&&(
+            {agendaFiltroData?(
               <>
-                <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:t.accent,marginBottom:8,letterSpacing:'.06em'}}>Hoje — {osHoje.length} serviço{osHoje.length>1?'s':''}</div>
-                {osHoje.map(o=><AgendaCard key={o.id} os={o} destaque={true}/>)}
+                {buscandoFiltro&&<div style={{fontSize:13,color:t.textSoft,textAlign:'center',padding:16}}>Buscando...</div>}
+                {!buscandoFiltro&&osFiltradas.length===0&&<div style={{fontSize:13,color:t.textSoft,textAlign:'center',padding:16}}>Nenhum serviço nesta data.</div>}
+                {!buscandoFiltro&&osFiltradas.length>0&&(
+                  <>
+                    <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:t.accent,marginBottom:8,letterSpacing:'.06em'}}>
+                      {new Date(agendaFiltroData+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})} — {osFiltradas.length} serviço{osFiltradas.length>1?'s':''}
+                    </div>
+                    {osFiltradas.map(o=>(
+                      <div key={o.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:10,marginBottom:8,background:t.bgSidebar,border:'1px solid '+(o.status==='concluida'?'#3B6D11':t.borderSoft)}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
+                          <div style={{fontSize:11,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.produto||o.servico||'—'}{o.bairro?' · '+o.bairro:''}</div>
+                        </div>
+                        <div style={{textAlign:'right',flexShrink:0}}>
+                          {o.periodo&&<div style={{fontSize:11,color:t.textSoft}}>{PERIODOS[o.periodo]||o.periodo}</div>}
+                          <div style={{fontSize:11,color:t.textSoft}}>{o.usuarios?.nome||'—'}</div>
+                        </div>
+                        {o.valor>0&&<div style={{fontSize:13,fontWeight:600,color:t.accent,flexShrink:0}}>{fmt(o.valor)}</div>}
+                        <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:500,background:o.status==='concluida'?'#EAF3DE':'#FAEEDA',color:o.status==='concluida'?'#3B6D11':'#854F0B',flexShrink:0}}>{o.status==='concluida'?'Concluída':'Em andamento'}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
               </>
-            )}
-            {osFuturas.length>0&&(
+            ):(
               <>
-                <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:t.textSoft,margin:'12px 0 8px',letterSpacing:'.06em'}}>Próximos dias</div>
-                {osFuturas.map(o=><AgendaCard key={o.id} os={o} destaque={false}/>)}
+                {osHoje.length===0&&osFuturas.length===0&&(
+                  <div style={{fontSize:13,color:t.textSoft,textAlign:'center',padding:16}}>Nenhum serviço agendado.</div>
+                )}
+                {osHoje.length>0&&(
+                  <>
+                    <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:t.accent,marginBottom:8,letterSpacing:'.06em'}}>Hoje — {osHoje.length} serviço{osHoje.length>1?'s':''}</div>
+                    {osHoje.map(o=><AgendaCard key={o.id} os={o} destaque={true}/>)}
+                  </>
+                )}
+                {osFuturas.length>0&&(
+                  <>
+                    <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:t.textSoft,margin:'12px 0 8px',letterSpacing:'.06em'}}>Próximos dias</div>
+                    {osFuturas.map(o=><AgendaCard key={o.id} os={o} destaque={false}/>)}
+                  </>
+                )}
               </>
             )}
           </div>
