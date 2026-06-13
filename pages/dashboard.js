@@ -283,17 +283,22 @@ export default function Dashboard(){
                       {new Date(agendaFiltroData+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})} — {osFiltradas.length} serviço{osFiltradas.length>1?'s':''}
                     </div>
                     {osFiltradas.map(o=>(
-                      <div key={o.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:10,marginBottom:8,background:t.bgSidebar,border:'1px solid '+(o.status==='concluida'?'#3B6D11':t.borderSoft)}}>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
-                          <div style={{fontSize:11,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.produto||o.servico||'—'}{o.bairro?' · '+o.bairro:''}</div>
+                      <div key={o.id} style={{borderRadius:10,marginBottom:8,background:t.bgSidebar,border:'1px solid '+(o.status==='concluida'?'#3B6D11':t.borderSoft)}}>
+                        <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px'}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
+                            <div style={{fontSize:11,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.produto||o.servico||'—'}{o.bairro?' · '+o.bairro:''}</div>
+                          </div>
+                          <div style={{textAlign:'right',flexShrink:0}}>
+                            {o.periodo&&<div style={{fontSize:11,color:t.textSoft}}>{PERIODOS[o.periodo]||o.periodo}</div>}
+                            <div style={{fontSize:11,color:t.textSoft}}>{o.usuarios?.nome||'—'}</div>
+                          </div>
+                          {o.valor>0&&<div style={{fontSize:13,fontWeight:600,color:t.accent,flexShrink:0}}>{fmt(o.valor)}</div>}
+                          <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:500,background:o.status==='concluida'?'#EAF3DE':'#FAEEDA',color:o.status==='concluida'?'#3B6D11':'#854F0B',flexShrink:0}}>{o.status==='concluida'?'Concluída':'Em andamento'}</span>
+                          <button onClick={()=>{setPainelOS({...o,tecnico_id:o.tecnico_id});setPainelValor(o.valor||0);setPainelMaoObra(o.valor_mao_obra||0);setPainelObs(o.observacoes||'')}} style={{padding:'5px 10px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:11,cursor:'pointer',fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>
+                            ✓ {o.status==='concluida'?'Editar':'Confirmar'}
+                          </button>
                         </div>
-                        <div style={{textAlign:'right',flexShrink:0}}>
-                          {o.periodo&&<div style={{fontSize:11,color:t.textSoft}}>{PERIODOS[o.periodo]||o.periodo}</div>}
-                          <div style={{fontSize:11,color:t.textSoft}}>{o.usuarios?.nome||'—'}</div>
-                        </div>
-                        {o.valor>0&&<div style={{fontSize:13,fontWeight:600,color:t.accent,flexShrink:0}}>{fmt(o.valor)}</div>}
-                        <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:500,background:o.status==='concluida'?'#EAF3DE':'#FAEEDA',color:o.status==='concluida'?'#3B6D11':'#854F0B',flexShrink:0}}>{o.status==='concluida'?'Concluída':'Em andamento'}</span>
                       </div>
                     ))}
                   </>
