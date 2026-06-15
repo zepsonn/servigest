@@ -1,3 +1,4 @@
+// atualizado 2026-06-15 15:49
 import { useEffect, useState } from 'react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
