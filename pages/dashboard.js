@@ -69,7 +69,7 @@ export default function Dashboard(){
         supabase.from('ordens_servico').select('valor,status,data_entrada,data_conclusao'),
         supabase.from('ordens_servico').select('valor_mao_obra,tecnico_id,usuarios(nome,comissao_percentual)').eq('status','concluida'),
         supabase.from('despesas').select('valor'),
-        supabase.from('ordens_servico').select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,valor,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
+        supabase.from('ordens_servico').select('id,numero,cliente_nome,cliente_telefone,cliente_endereco,bairro,produto,servico,descricao,periodo,status,data_entrada,valor,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
           .eq('status','em_andamento')
           .lte('data_entrada',em7dias)
           .order('data_entrada'),
@@ -98,7 +98,7 @@ export default function Dashboard(){
       // tecnico — busca OS vinculadas a ele
       const { data: proximas } = await supabase
         .from('ordens_servico')
-        .select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,valor,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
+        .select('id,numero,cliente_nome,cliente_telefone,cliente_endereco,bairro,produto,servico,descricao,periodo,status,data_entrada,valor,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
         .eq('tecnico_id', u.id)
         .eq('status','em_andamento')
         .order('data_entrada')
@@ -136,7 +136,7 @@ export default function Dashboard(){
     if(!data){setOsFiltradas([]);setAgendaFiltroData('');return}
     setBuscandoFiltro(true)
     const {data:os}=await supabase.from('ordens_servico')
-      .select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,valor,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
+      .select('id,numero,cliente_nome,cliente_telefone,cliente_endereco,bairro,produto,servico,descricao,periodo,status,data_entrada,valor,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
       .eq('data_entrada',data)
       .order('cliente_nome')
     setOsFiltradas(os||[])
