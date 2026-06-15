@@ -149,8 +149,6 @@ export default function Layout({ children, title = 'Dashboard' }) {
   ]
   const navFunc = [
     { href: '/dashboard', icon: 'dashboard', label: 'Meus Servicos' },
-    { href: '/os', icon: 'os', label: 'Ordens de Servico' },
-    { href: '/historico', icon: 'historico', label: 'Historico' },
   ]
   const nav = isGestor ? navGestor : navFunc
   const navMobile = nav.slice(0, 5)
