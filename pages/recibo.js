@@ -181,7 +181,7 @@ export default function Recibo() {
 function OSSelector({onSelect,t,s}) {
   const [lista,setLista]=useState([])
   const [busca,setBusca]=useState('')
-  useEffect(()=>{supabase.from('ordens_servico').select('*').order('criado_em',{ascending:false}).then(({data})=>setLista(data||[]))},[])
+  useEffect(()=>{supabase.from('ordens_servico').select('*, usuarios(nome)').order('criado_em',{ascending:false}).then(({data})=>setLista(data||[]))},[])
   const filtradas=lista.filter(o=>(o.cliente_nome||'').toLowerCase().includes(busca.toLowerCase())||(o.cliente_telefone||'').includes(busca)||String(o.numero).includes(busca))
   const fmt=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
   return <div>
