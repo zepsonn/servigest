@@ -181,16 +181,27 @@ export default function Dashboard(){
   const colSpan=tam=>{ if(isMobile)return'1/-1'; if(tam==='largo')return'1/-1'; if(tam==='medio')return'span 2'; return'span 1' }
 
   function AgendaCard({os, destaque, atrasado}) {
+    const [exp, setExp] = useState(false)
     const data = os.data_entrada ? new Date(os.data_entrada+'T12:00') : null
     const diasRestantes = data ? Math.round((data - new Date().setHours(0,0,0,0)) / 86400000) : null
     const corDestaque = atrasado ? '#A32D2D' : t.accent
     const bgDestaque = atrasado ? (t.dark?'#2a1a1a':'#fdf0f0') : (t.dark?'#1a2a1a':'#f0faf0')
     // bairro curto — tira o prefixo da cidade (ex: "Sao Jose dos Pinhais - Afonso Pena" → "Afonso Pena")
     const bairroShort = os.bairro ? os.bairro.split(' - ').pop() : ''
+    const Detalhes = () => (
+      <div style={{margin:'0 12px 10px',padding:'10px 12px',borderRadius:8,background:t.bgCard,fontSize:12,color:t.textSoft,display:'flex',flexDirection:'column',gap:5}}>
+        {os.cliente_telefone&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Telefone:</span>{os.cliente_telefone}</div>}
+        {os.cliente_endereco&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Endereço:</span>{os.cliente_endereco}</div>}
+        {os.bairro&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Bairro:</span>{os.bairro}</div>}
+        {os.descricao&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Diagnóstico:</span>{os.descricao}</div>}
+        {os.observacoes&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Obs:</span>{os.observacoes}</div>}
+        {os.valor>0&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Valor:</span><strong style={{color:t.accent}}>{fmt(os.valor)}</strong></div>}
+      </div>
+    )
 
     if(isMobile) return (
       <div style={{borderRadius:10,marginBottom:8,background:destaque?bgDestaque:t.bgSidebar,border:destaque?'1px solid '+corDestaque:'1px solid '+t.borderSoft}}>
-        <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px'}}>
+        <div onClick={()=>setExp(!exp)} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px',cursor:'pointer'}}>
           {atrasado&&<span style={{fontSize:14,flexShrink:0}}>⚠</span>}
           <div style={{textAlign:'center',flexShrink:0,width:32}}>
             <div style={{fontSize:16,fontWeight:700,color:destaque?corDestaque:t.textSoft,lineHeight:1}}>{data?data.getDate():'—'}</div>
@@ -203,8 +214,12 @@ export default function Dashboard(){
               {[os.produto||os.servico, bairroShort, os.periodo?PERIODOS[os.periodo]:null].filter(Boolean).join(' · ')}
             </div>
           </div>
-          <button onClick={()=>{setPainelOS(os);setPainelValor(os.valor||0);setPainelObs(os.observacoes||'')}} style={{padding:'8px 14px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:12,cursor:'pointer',fontWeight:600,flexShrink:0}}>
-            ✓
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={t.textSoft} strokeWidth="2" style={{transform:exp?'rotate(180deg)':'none',transition:'transform .2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        {exp&&<Detalhes/>}
+        <div style={{padding:'0 12px 10px'}}>
+          <button onClick={()=>{setPainelOS(os);setPainelValor(os.valor||0);setPainelObs(os.observacoes||'')}} style={{width:'100%',padding:'8px 14px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:12,cursor:'pointer',fontWeight:600}}>
+            ✓ Confirmar
           </button>
         </div>
       </div>
@@ -214,7 +229,7 @@ export default function Dashboard(){
     const diasAtras = atrasado && data ? Math.abs(diasRestantes) : null
     return (
       <div style={{borderRadius:10,marginBottom:8,background:destaque?bgDestaque:t.bgSidebar,border:destaque?'1px solid '+corDestaque:'1px solid '+t.borderSoft,overflow:'hidden'}}>
-        <div style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px'}}>
+        <div onClick={()=>setExp(!exp)} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',cursor:'pointer'}}>
           <div style={{textAlign:'center',flexShrink:0,width:44}}>
             <div style={{fontSize:destaque?20:16,fontWeight:700,color:destaque?corDestaque:t.textSoft,lineHeight:1}}>{data?data.getDate():'—'}</div>
             <div style={{fontSize:10,color:t.textSoft,textTransform:'uppercase'}}>{data?data.toLocaleDateString('pt-BR',{month:'short'}):''}</div>
@@ -231,10 +246,12 @@ export default function Dashboard(){
           {atrasado&&diasAtras>0&&<div style={{background:'#FCEBEB',border:'1px solid #f0c0c0',borderRadius:6,padding:'2px 8px',fontSize:11,color:'#A32D2D',flexShrink:0,fontWeight:600}}>há {diasAtras}d</div>}
           {!atrasado&&diasRestantes!==null&&diasRestantes>0&&<div style={{background:t.bgCard,border:'1px solid '+t.borderSoft,borderRadius:6,padding:'2px 8px',fontSize:11,color:t.textSoft,flexShrink:0}}>em {diasRestantes}d</div>}
           {atrasado?<div style={{background:'#A32D2D',color:'#fff',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:600,flexShrink:0}}>ATRASADO</div>:(destaque&&<div style={{background:t.accent,color:'#fff',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:600,flexShrink:0}}>HOJE</div>)}
-          <button onClick={()=>{setPainelOS(os);setPainelValor(os.valor||0);setPainelObs(os.observacoes||'')}} style={{padding:'5px 12px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:11,cursor:'pointer',fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>
+          <button onClick={e=>{e.stopPropagation();setPainelOS(os);setPainelValor(os.valor||0);setPainelObs(os.observacoes||'')}} style={{padding:'5px 12px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:11,cursor:'pointer',fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>
             ✓ Confirmar
           </button>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={t.textSoft} strokeWidth="2" style={{transform:exp?'rotate(180deg)':'none',transition:'transform .2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
         </div>
+        {exp&&<Detalhes/>}
       </div>
     )
   }
