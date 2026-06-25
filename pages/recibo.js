@@ -60,7 +60,7 @@ export default function Recibo() {
     const telFormatado=formatarTelBR(form.cliente_telefone)
     if(telFormatado.length<12){alert('Telefone invalido');return}
     const linha='================================'
-    const msg=[empresa.nome,linha,'RECIBO - OS N. '+form.numero,linha,'','Cliente: '+(form.cliente_nome||'-'),'Telefone: '+(form.cliente_telefone||'-'),'Endereco: '+(form.cliente_endereco||'-'),'','Produto: '+(form.produto||'-'),'Servico: '+(form.servico||'-'),form.descricao?'Diagnostico: '+form.descricao:'','Data: '+fmtDate(form.data_entrada),'',linha,'VALOR TOTAL: '+fmt(form.valor),linha,form.observacoes?'Obs: '+form.observacoes:'','','Agradecemos pela confianca e preferencia!','Qualquer duvida estamos a disposicao.','',empresa.nome,'Tel: '+(empresa.telefone||''),'Email: '+(empresa.email||''),].filter(l=>l!==null).join('\n')
+    const msg=[empresa.nome,linha,'RECIBO - OS N. '+form.numero,linha,'','Cliente: '+(form.cliente_nome||'-'),'Telefone: '+(form.cliente_telefone||'-'),'Endereco: '+(form.cliente_endereco||'-'),'','Produto: '+(form.produto||'-'),'Servico: '+(form.servico||'-'),form.descricao?'Diagnostico: '+form.descricao:'','Data: '+fmtDate(form.data_entrada),'',linha,'VALOR TOTAL: '+fmt(form.valor),linha,'','Agradecemos pela confianca e preferencia!','Qualquer duvida estamos a disposicao.','',empresa.nome,'Tel: '+(empresa.telefone||''),'Email: '+(empresa.email||''),].filter(l=>l!==null).join('\n')
     window.open('https://wa.me/'+telFormatado+'?text='+encodeURIComponent(msg),'_blank')
   }
 
@@ -154,10 +154,6 @@ export default function Recibo() {
                   {editando
                     ?<input type="number" style={{padding:'4px 8px',borderRadius:6,border:'1px solid #1D9E75',fontSize:18,fontWeight:700,textAlign:'right',width:130,fontFamily:'inherit'}} value={form.valor||0} onChange={e=>up('valor',e.target.value)}/>
                     :<span class="total-val" style={{fontSize:22,fontWeight:700,color:'#1D9E75'}}>{fmt(form.valor)}</span>}
-                </div>
-                <div style={{fontSize:12,color:'#888',padding:'8px 12px',background:'#f9f9f7',borderRadius:6,marginTop:8}}>
-                  <strong>Obs:</strong>{' '}
-                  {editando?<textarea style={{width:'100%',padding:'6px 9px',borderRadius:6,border:'1px solid #1D9E75',fontSize:13,fontFamily:'inherit',marginTop:4,minHeight:50,resize:'vertical'}} value={form.observacoes||''} onChange={e=>up('observacoes',e.target.value)}/>:(form.observacoes||'-')}
                 </div>
                 <div class="assinaturas" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,marginTop:32,paddingTop:16,borderTop:'1px dashed #e0e0e0'}}>
                   <div class="assinatura" style={{textAlign:'center',borderTop:'1px solid #333',paddingTop:6,fontSize:11,color:'#888'}}>{empresa.nome}</div>
