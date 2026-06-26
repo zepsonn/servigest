@@ -16,8 +16,9 @@ const BAIRROS_CURITIBA = [
   'Rebouças','Santa Cândida','Santa Felicidade','Santa Quitéria','Santo Inácio',
   'São Braz','São Francisco','São João','São Lourenço','São Miguel','Seminário',
   'Sítio Cercado','Taboão','Tatuquara','Tingui','Uberaba','Umbará',
-  'Vila Izabel','Vila Leão','Vista Alegre','Xaxim',
+  'Bairro Novo','Batel','Osternack','Vila Izabel','Vila Leão','Vista Alegre','Xaxim',
   'Sao Jose dos Pinhais',
+  'Pinhais',
   'Piraquara',
   'Colombo',
   'Araucária'
