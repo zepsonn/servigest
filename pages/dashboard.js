@@ -19,6 +19,7 @@ const CARDS_DEFAULT = [
   {id:'concluidas',label:'Concluídas',tamanho:'pequeno'},
   {id:'hoje',label:'Agenda hoje',tamanho:'pequeno'},
   {id:'agenda',label:'Agenda de serviços',tamanho:'largo'},
+  {id:'por_tecnico',label:'Serviços por técnico hoje',tamanho:'largo'},
   {id:'grafico',label:'Receita por mês',tamanho:'largo'},
   {id:'comissoes',label:'Comissões técnicos',tamanho:'medio'},
   {id:'comissoes_dia',label:'Comissões por dia',tamanho:'medio'},
@@ -39,6 +40,10 @@ export default function Dashboard(){
   const [osFuturas,setOsFuturas]=useState([])
   const [agendaFiltroData,setAgendaFiltroData]=useState('')
   const [osFiltradas,setOsFiltradas]=useState([])
+  const [tecFiltroId,setTecFiltroId]=useState('')
+  const [tecFiltroData,setTecFiltroData]=useState(new Date().toISOString().split('T')[0])
+  const [tecOs,setTecOs]=useState([])
+  const [tecBuscando,setTecBuscando]=useState(false)
   const [buscandoFiltro,setBuscandoFiltro]=useState(false)
   const [config,setConfig]=useState(CARDS_DEFAULT)
   const [draft,setDraft]=useState(CARDS_DEFAULT)
@@ -231,6 +236,18 @@ export default function Dashboard(){
     setOsFiltradas(os||[])
     setAgendaFiltroData(data)
     setBuscandoFiltro(false)
+  }
+
+  async function buscarTecnico(tecId, data){
+    if(!tecId||!data){setTecOs([]);return}
+    setTecBuscando(true)
+    const {data:os}=await supabase.from('ordens_servico')
+      .select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,valor,tecnico_id,usuarios(nome)')
+      .eq('tecnico_id',tecId)
+      .eq('data_entrada',data)
+      .order('periodo')
+    setTecOs(os||[])
+    setTecBuscando(false)
   }
 
   function dgStart(i){setDragIdx(i)}
@@ -428,6 +445,68 @@ export default function Dashboard(){
                     {osFuturas.map(o=><AgendaCard key={o.id} os={o} destaque={false}/>)}
                   </>
                 )}
+              </>
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    // SERVIÇOS POR TÉCNICO HOJE
+    if(card.id==='por_tecnico'){
+      const PERIODO_ORDEM={manha:0,tarde:1,noite:2}
+      const lista=[...tecOs].sort((a,b)=>(PERIODO_ORDEM[a.periodo]??3)-(PERIODO_ORDEM[b.periodo]??3))
+      const grupos={manha:[],tarde:[],noite:[],sem:[]}
+      lista.forEach(o=>{ grupos[o.periodo||'sem'] ? grupos[o.periodo||'sem'].push(o) : grupos.sem.push(o) })
+      const tecNome=tecnicos.find(tt=>tt.id===tecFiltroId)?.nome
+      return (
+        <div key={card.id} {...dragProps} style={baseStyle}>
+          {edit&&<EditOverlay card={card} t={t} onRemove={()=>remover(card.id)} onTam={tam=>setTam(card.id,tam)}/>}
+          <div style={{padding:'14px 18px',borderBottom:'1px solid '+t.borderSoft}}>
+            <span style={{fontSize:14,fontWeight:600,color:t.text}}>Serviços por técnico</span>
+          </div>
+          <div style={{padding:'14px 18px'}}>
+            {/* CONTROLES */}
+            <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
+              <select value={tecFiltroId} onChange={e=>{setTecFiltroId(e.target.value);buscarTecnico(e.target.value,tecFiltroData)}}
+                style={{flex:1,minWidth:140,padding:'9px 12px',borderRadius:8,border:'1px solid '+t.border,background:t.bgInput,color:t.text,fontSize:13,fontFamily:'inherit',cursor:'pointer'}}>
+                <option value="">Selecione um técnico...</option>
+                {tecnicos.map(tc=><option key={tc.id} value={tc.id}>{tc.nome}</option>)}
+              </select>
+              <input type="date" value={tecFiltroData} onChange={e=>{setTecFiltroData(e.target.value);if(tecFiltroId)buscarTecnico(tecFiltroId,e.target.value)}}
+                style={{padding:'9px 12px',borderRadius:8,border:'1px solid '+t.border,background:t.bgInput,color:t.text,fontSize:13,fontFamily:'inherit',cursor:'pointer'}}/>
+            </div>
+
+            {/* RESULTADO */}
+            {!tecFiltroId&&<div style={{fontSize:13,color:t.textSoft,textAlign:'center',padding:20}}>Selecione um técnico para ver os serviços.</div>}
+            {tecFiltroId&&tecBuscando&&<div style={{fontSize:13,color:t.textSoft,textAlign:'center',padding:20}}>Buscando...</div>}
+            {tecFiltroId&&!tecBuscando&&lista.length===0&&<div style={{fontSize:13,color:t.textSoft,textAlign:'center',padding:20}}>Nenhum serviço para {tecNome} nesta data.</div>}
+            {tecFiltroId&&!tecBuscando&&lista.length>0&&(
+              <>
+                <div style={{fontSize:11,fontWeight:700,color:t.accent,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:12}}>
+                  {tecNome} — {lista.length} serviço{lista.length>1?'s':''}
+                </div>
+                {['manha','tarde','noite','sem'].map(per=>{
+                  if(!grupos[per]||grupos[per].length===0) return null
+                  return (
+                    <div key={per} style={{marginBottom:14}}>
+                      <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:t.textSoft,letterSpacing:'.06em',marginBottom:6}}>
+                        {per==='sem'?'Sem período':PERIODOS[per]}
+                      </div>
+                      {grupos[per].map(o=>(
+                        <div key={o.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:8,background:t.bgSidebar,marginBottom:6,border:'1px solid '+(o.status==='concluida'?'#3B6D11':t.borderSoft)}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
+                            <div style={{fontSize:11,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.produto||o.servico||'—'}{o.bairro?' · '+o.bairro.split(' - ').pop():''}</div>
+                          </div>
+                          <span style={{padding:'2px 8px',borderRadius:999,fontSize:10,fontWeight:600,background:o.status==='concluida'?'#EAF3DE':'#FAEEDA',color:o.status==='concluida'?'#3B6D11':'#854F0B',flexShrink:0}}>
+                            {o.status==='concluida'?'Concluído':'Pendente'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })}
               </>
             )}
           </div>
