@@ -143,7 +143,7 @@ export default function OS() {
   },[])
 
   async function loadOS(){
-    const{data}=await supabase.from('ordens_servico').select('*, usuarios(nome)').order('cliente_nome')
+    const{data}=await supabase.from('ordens_servico').select('*, usuarios(nome,comissao_percentual)').order('cliente_nome')
     setLista(data||[])
   }
 
@@ -246,6 +246,39 @@ export default function OS() {
                   {o.descricao&&<div style={{gridColumn:isMobile?'1':'1/-1'}}><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Diagnóstico</span><span style={{color:t.text}}>{o.descricao}</span></div>}
                   {o.observacoes&&<div style={{gridColumn:isMobile?'1':'1/-1'}}><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Observações</span><span style={{color:t.text}}>{o.observacoes}</span></div>}
                 </div>
+
+                {/* DETALHAMENTO FINANCEIRO — só quando concluída */}
+                {o.status==='concluida'&&(()=>{
+                  const pct=o.usuarios?.comissao_percentual||0
+                  const ehTaxa=o.eh_taxa
+                  const valorTotal=Number(o.valor||0)
+                  const pecas=Number(o.valor_pecas||0)
+                  const maoObra=Number(o.valor_mao_obra!=null?o.valor_mao_obra:Math.max(valorTotal-pecas,0))
+                  let paraTecnico=0, paraEmpresa=valorTotal
+                  if(ehTaxa){
+                    // taxa: mao_obra guarda quanto foi pro tecnico (0 se 1a do dia ou Claudio)
+                    paraTecnico = pct>0 ? Number(o.valor_mao_obra||0)/2 : 0
+                    paraEmpresa = valorTotal - paraTecnico
+                  } else if(pct>0){
+                    paraTecnico = maoObra*pct/100
+                    paraEmpresa = valorTotal - paraTecnico
+                  }
+                  return (
+                    <div style={{background:t.bgCard,border:'1px solid '+t.borderSoft,borderRadius:8,padding:'12px 14px',marginBottom:12}}>
+                      <div style={{fontSize:11,fontWeight:700,color:t.textSoft,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>
+                        {ehTaxa?'💰 Detalhamento — Taxa de visita':'💰 Detalhamento financeiro'}
+                      </div>
+                      <div style={{display:'flex',flexDirection:'column',gap:5,fontSize:13}}>
+                        <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:t.textSoft}}>{ehTaxa?'Valor da taxa':'Valor total cobrado'}</span><strong style={{color:t.text}}>{fmt(valorTotal)}</strong></div>
+                        {!ehTaxa&&pecas>0&&<div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:t.textSoft}}>Valor de peças</span><span style={{color:t.text}}>− {fmt(pecas)}</span></div>}
+                        {!ehTaxa&&<div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:t.textSoft}}>Mão de obra</span><strong style={{color:t.text}}>{fmt(maoObra)}</strong></div>}
+                        <div style={{borderTop:'1px solid '+t.borderSoft,margin:'4px 0',paddingTop:5}}/>
+                        {paraTecnico>0&&<div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:t.textSoft}}>Para {o.usuarios?.nome||'técnico'}</span><strong style={{color:t.accent}}>{fmt(paraTecnico)}</strong></div>}
+                        <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:t.textSoft}}>Para empresa</span><strong style={{color:t.text}}>{fmt(paraEmpresa)}</strong></div>
+                      </div>
+                    </div>
+                  )
+                })()}
                 <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
                   {o.status!=='concluida'&&<button style={{padding:'7px 14px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:12,cursor:'pointer',fontWeight:500}} onClick={()=>concluir(o.id)}>✓ Concluir</button>}
                   <button style={{padding:'7px 14px',borderRadius:8,border:'1px solid '+t.border,background:t.bgCard,color:t.text,fontSize:12,cursor:'pointer'}} onClick={()=>{setEditForm({...o,tecnico_id:o.tecnico_id||''});setEditModal(o);setDetalhe(null)}}>✏️ Editar</button>
