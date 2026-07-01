@@ -11,22 +11,24 @@ function Badge({s}){ const [bg,c]=STATUS_COLORS[s]||['#F1EFE8','#5F5E5A']; retur
 
 const BAIRROS_CURITIBA = [
   'Abranches','Água Verde','Ahú','Alto Boqueirão','Alto da Glória','Alto da Rua XV',
-  'Atuba','Augusta','Bacacheri','Bairro Alto','Barreirinha','Boa Vista','Bom Retiro',
-  'Boqueirão','Butiatuvinha','Cabral','Cachoeira','Cajuru','Campo Comprido','Campo de Santana',
+  'Atuba','Augusta','Bacacheri','Bacacheri (Vila)','Bairro Alto','Barreirinha','Bigorrilho','Boa Vista','Bom Retiro',
+  'Boqueirão','Butiatuvinha','Cabral','Cachoeira','Cajuru','Campina do Siqueira','Campo Comprido','Campo de Santana',
   'Capão da Imbuia','Capão Raso','Cascatinha','Caximba','Centro','Centro Cívico',
-  'Cristo Rei','Fanny','Fazendinha','Ganchinho','Guaíra','Guabirotuba','Hauer',
+  'Cidade Industrial (CIC)','Cristo Rei','Fanny','Fazendinha','Ganchinho','Guaíra','Guabirotuba','Hauer',
   'Hugo Lange','Jardim Botânico','Jardim das Américas','Jardim Social','Juvevê',
-  'Lamenha Pequena','Lindóia','Lamenha','Mercês','Mossunguê','Novo Mundo',
-  'Orleans','Parolin','Pilarzinho','Pinheirinho','Portão','Prado Velho',
+  'Lamenha Pequena','Lindóia','Mercês','Mossunguê','Novo Mundo',
+  'Orleans','Parolin','Pilarzinho','Pinheirinho','Portão','Prado Velho','Riviera',
   'Rebouças','Santa Cândida','Santa Felicidade','Santa Quitéria','Santo Inácio',
   'São Braz','São Francisco','São João','São Lourenço','São Miguel','Seminário',
-  'Sítio Cercado','Taboão','Tatuquara','Tingui','Uberaba','Umbará',
+  'Sítio Cercado','Taboão','Tarumã','Tatuquara','Tingui','Uberaba','Umbará',
   'Bairro Novo','Batel','Osternack','Vila Izabel','Vila Leão','Vista Alegre','Xaxim',
   'Sao Jose dos Pinhais',
   'Pinhais',
   'Piraquara',
   'Colombo',
-  'Araucária'
+  'Araucária',
+  'Fazenda Rio Grande',
+  'Campo Largo'
 ].sort()
 
 const FORM0 = {
