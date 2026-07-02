@@ -28,7 +28,8 @@ const BAIRROS_CURITIBA = [
   'Colombo',
   'Araucária',
   'Fazenda Rio Grande',
-  'Campo Largo'
+  'Campo Largo',
+  'Almirante Tamandaré'
 ].sort()
 
 const FORM0 = {
@@ -173,6 +174,37 @@ export default function OS() {
     await supabase.from('ordens_servico').delete().eq('id',os.id); loadOS()
   }
 
+  function fmtDataBR(d){
+    if(!d) return '-'
+    return new Date(d+'T12:00').toLocaleDateString('pt-BR')
+  }
+
+  const PERIODO_LABEL={manha:'Manhã',tarde:'Tarde',noite:'Noite'}
+
+  async function copiarParaWhatsapp(o){
+    const linhas=[
+      `*OS Nº ${o.numero}*`,
+      `Cliente: ${o.cliente_nome||'-'}`,
+      o.cliente_telefone?`Telefone: ${o.cliente_telefone}`:null,
+      `Endereço: ${o.cliente_endereco||'-'}${o.bairro?' - '+o.bairro:''}`,
+      `Data: ${fmtDataBR(o.data_entrada)}${o.periodo?' ('+(PERIODO_LABEL[o.periodo]||o.periodo)+')':''}`,
+      o.produto?`Produto: ${o.produto}`:null,
+      o.servico?`Serviço: ${o.servico}`:null,
+      `Diagnóstico: ${o.descricao||'-'}`,
+    ].filter(Boolean)
+    const texto=linhas.join('\n')
+    try{
+      await navigator.clipboard.writeText(texto)
+      alert('OS copiada! Agora é só colar no WhatsApp.')
+    }catch(e){
+      // fallback pra navegadores sem permissao de clipboard
+      const ta=document.createElement('textarea')
+      ta.value=texto; document.body.appendChild(ta); ta.select()
+      document.execCommand('copy'); document.body.removeChild(ta)
+      alert('OS copiada! Agora é só colar no WhatsApp.')
+    }
+  }
+
   async function concluir(id){
     await supabase.from('ordens_servico').update({status:'concluida',data_conclusao:new Date().toISOString().split('T')[0]}).eq('id',id); loadOS()
   }
@@ -285,6 +317,7 @@ export default function OS() {
                   {o.status!=='concluida'&&<button style={{padding:'7px 14px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:12,cursor:'pointer',fontWeight:500}} onClick={()=>concluir(o.id)}>✓ Concluir</button>}
                   <button style={{padding:'7px 14px',borderRadius:8,border:'1px solid '+t.border,background:t.bgCard,color:t.text,fontSize:12,cursor:'pointer'}} onClick={()=>{setEditForm({...o,tecnico_id:o.tecnico_id||''});setEditModal(o);setDetalhe(null)}}>✏️ Editar</button>
                   <button style={{padding:'7px 14px',borderRadius:8,border:'1px solid '+t.border,background:t.bgCard,color:t.text,fontSize:12,cursor:'pointer'}} onClick={()=>router.push('/recibo?os='+o.id)}>🧾 Recibo</button>
+                  <button style={{padding:'7px 14px',borderRadius:8,border:'1px solid #DCF0E5',background:t.bgCard,color:'#1D9E75',fontSize:12,cursor:'pointer'}} onClick={()=>copiarParaWhatsapp(o)}>📋 Copiar p/ WhatsApp</button>
                   {isGestor&&<button style={{padding:'7px 14px',borderRadius:8,border:'1px solid #FCEBEB',background:t.bgCard,color:'#A32D2D',fontSize:12,cursor:'pointer'}} onClick={()=>apagar(o)}>🗑️ Apagar</button>}
                 </div>
               </div>

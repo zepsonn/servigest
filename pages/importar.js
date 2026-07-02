@@ -23,7 +23,8 @@ const BAIRROS_CURITIBA = [
   'Colombo',
   'Araucária',
   'Fazenda Rio Grande',
-  'Campo Largo'
+  'Campo Largo',
+  'Almirante Tamandaré'
 ].sort()
 
 const MODELO_MENSAGEM = `Olá! Para agendarmos seu serviço, por favor responda preenchendo após os dois pontos:
