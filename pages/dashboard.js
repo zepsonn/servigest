@@ -798,17 +798,23 @@ export default function Dashboard(){
             </div>
           )}
           {osFuturas.map(o=>(
-            <div key={o.id} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:'12px 14px',marginBottom:8}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+            <div key={o.id} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:'14px',marginBottom:10}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
                 <div style={{flex:1,minWidth:0,marginRight:8}}>
-                  <div style={{fontWeight:600,color:t.text,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
-                  <div style={{fontSize:12,color:t.textSoft,marginTop:2}}>{o.produto||o.servico||'—'}</div>
-                  {o.bairro&&<div style={{fontSize:11,color:t.textSoft,marginTop:1}}>{o.bairro.split(' - ').pop()}</div>}
+                  <div style={{fontWeight:600,color:t.text,fontSize:15}}>{o.cliente_nome||'—'}</div>
+                  <div style={{fontSize:13,color:t.textSoft,marginTop:2}}>{o.produto||o.servico||'—'}</div>
                 </div>
                 <div style={{textAlign:'right',flexShrink:0}}>
-                  {o.periodo&&<div style={{fontSize:12,color:t.textSoft}}>{PERIODOS[o.periodo]||o.periodo}</div>}
+                  {o.periodo&&<div style={{fontSize:12,fontWeight:600,color:t.textSoft}}>{PERIODOS[o.periodo]||o.periodo}</div>}
                   <div style={{fontSize:11,color:t.textSoft,marginTop:2}}>{o.data_entrada?new Date(o.data_entrada+'T12:00').toLocaleDateString('pt-BR'):''}</div>
                 </div>
+              </div>
+              <div style={{background:t.bgSidebar,borderRadius:8,padding:'10px 12px',fontSize:12,color:t.textSoft,display:'flex',flexDirection:'column',gap:5}}>
+                {o.cliente_telefone&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Telefone:</span>{o.cliente_telefone}</div>}
+                {o.cliente_endereco&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Endereço:</span>{o.cliente_endereco}</div>}
+                {o.bairro&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Bairro:</span>{o.bairro.split(' - ').pop()}</div>}
+                {o.descricao&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Diagnóstico:</span>{o.descricao}</div>}
+                {o.observacoes&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Obs:</span>{o.observacoes}</div>}
               </div>
             </div>
           ))}
