@@ -38,6 +38,7 @@ export default function Dashboard(){
   const [stats,setStats]=useState({clientes:0,hoje:0,andamento:0,concluidas:0,fat:0,desp:0,meses:[]})
   const [osHoje,setOsHoje]=useState([])
   const [osFuturas,setOsFuturas]=useState([])
+  const [osRealizadas,setOsRealizadas]=useState([])
   const [agendaFiltroData,setAgendaFiltroData]=useState('')
   const [osFiltradas,setOsFiltradas]=useState([])
   const [tecFiltroId,setTecFiltroId]=useState('')
@@ -145,16 +146,24 @@ export default function Dashboard(){
       setStats({clientes:cl||0,hoje:hojeCount,andamento,concluidas:concl.length,fat,desp:desp2,meses:Object.entries(pm).sort().slice(-6),comissoes:Object.values(comMap),porDia})
     } else {
       // tecnico — busca OS vinculadas a ele
-      const { data: proximas } = await supabase
-        .from('ordens_servico')
-        .select('id,numero,cliente_nome,cliente_telefone,cliente_endereco,bairro,produto,servico,descricao,periodo,status,data_entrada,valor,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
-        .eq('tecnico_id', u.id)
-        .eq('status','em_andamento')
-        .order('data_entrada')
+      const [{ data: proximas }, { data: realizadas }] = await Promise.all([
+        supabase.from('ordens_servico')
+          .select('id,numero,cliente_nome,cliente_telefone,cliente_endereco,bairro,produto,servico,descricao,periodo,status,data_entrada,valor,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
+          .eq('tecnico_id', u.id)
+          .eq('status','em_andamento')
+          .order('data_entrada'),
+        supabase.from('ordens_servico')
+          .select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,data_conclusao,valor,valor_pecas,valor_mao_obra,eh_taxa,tecnico_id,usuarios(nome,comissao_percentual)')
+          .eq('tecnico_id', u.id)
+          .eq('status','concluida')
+          .order('data_conclusao',{ascending:false})
+          .limit(30),
+      ])
       const todosProx = proximas||[]
       setOsHoje(todosProx.filter(o=>o.data_entrada===hoje))
       setOsFuturas(todosProx.filter(o=>o.data_entrada>hoje))
-      setStats(prev=>({...prev,andamento:todosProx.length,hoje:todosProx.filter(o=>o.data_entrada===hoje).length}))
+      setOsRealizadas(realizadas||[])
+      setStats(prev=>({...prev,andamento:todosProx.length,hoje:todosProx.filter(o=>o.data_entrada===hoje).length,concluidas:(realizadas||[]).length}))
     }
   }
 
@@ -230,7 +239,7 @@ export default function Dashboard(){
     if(!data){setOsFiltradas([]);setAgendaFiltroData('');return}
     setBuscandoFiltro(true)
     const {data:os}=await supabase.from('ordens_servico')
-      .select('id,numero,cliente_nome,cliente_telefone,cliente_endereco,bairro,produto,servico,descricao,periodo,status,data_entrada,valor,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
+      .select('id,numero,cliente_nome,cliente_telefone,cliente_endereco,bairro,produto,servico,descricao,periodo,status,data_entrada,valor,valor_pecas,valor_taxa,eh_taxa,valor_mao_obra,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
       .eq('data_entrada',data)
       .order('cliente_nome')
     setOsFiltradas(os||[])
@@ -419,7 +428,7 @@ export default function Dashboard(){
                           </div>
                           {o.valor>0&&<div style={{fontSize:13,fontWeight:600,color:t.accent,flexShrink:0}}>{fmt(o.valor)}</div>}
                           <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:500,background:o.status==='concluida'?'#EAF3DE':'#FAEEDA',color:o.status==='concluida'?'#3B6D11':'#854F0B',flexShrink:0}}>{o.status==='concluida'?'Concluída':'Em andamento'}</span>
-                          <button onClick={()=>{setPainelOS({...o,tecnico_id:o.tecnico_id});setPainelValor(o.valor||0);setPainelMaoObra(o.valor_mao_obra||0);setPainelObs(o.observacoes||'')}} style={{padding:'5px 10px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:11,cursor:'pointer',fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>
+                          <button onClick={()=>{setPainelOS({...o,tecnico_id:o.tecnico_id});setPainelValor(o.valor||0);setPainelPecas(o.valor_pecas||0);setPainelTaxa(o.valor_taxa||0);setEhTaxa(!!o.eh_taxa);setPainelObs(o.observacoes||'')}} style={{padding:'5px 10px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:11,cursor:'pointer',fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>
                             ✓ {o.status==='concluida'?'Editar':'Confirmar'}
                           </button>
                         </div>
@@ -747,8 +756,8 @@ export default function Dashboard(){
       ):(
         <>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:16}}>
-            {[['Hoje',osHoje.length],['Esta semana',osFuturas.length],['Total',stats.andamento]].map(([l,v])=>(
-              <div key={l} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:'12px 14px'}}><div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>{l}</div><div style={{fontSize:20,fontWeight:700,color:t.text}}>{v}</div></div>
+            {[['Hoje',osHoje.length,t.accent],['Próximos',osFuturas.length,null],['Realizados',osRealizadas.length,'#3B6D11']].map(([l,v,cor])=>(
+              <div key={l} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:'12px 14px'}}><div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>{l}</div><div style={{fontSize:20,fontWeight:700,color:cor||t.text}}>{v}</div></div>
             ))}
           </div>
           {osHoje.length>0&&(
@@ -777,7 +786,7 @@ export default function Dashboard(){
                 {o.data_entrada&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Data:</span>{new Date(o.data_entrada+'T12:00').toLocaleDateString('pt-BR')}</div>}
                 {o.valor>0&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Valor:</span><strong style={{color:t.accent}}>{fmt(o.valor)}</strong></div>}
               </div>
-              <button onClick={()=>{setPainelOS(o);setPainelValor(o.valor||0);setPainelMaoObra(o.valor_mao_obra||0);setPainelObs(o.observacoes||'')}}
+              <button onClick={()=>{setPainelOS(o);setPainelValor(o.valor||0);setPainelPecas(o.valor_pecas||0);setPainelTaxa(0);setEhTaxa(false);setPainelObs(o.observacoes||'')}}
                 style={{width:'100%',padding:'12px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:15,cursor:'pointer',fontWeight:600}}>
                 ✓ Confirmar serviço
               </button>
@@ -803,7 +812,40 @@ export default function Dashboard(){
               </div>
             </div>
           ))}
-          {osHoje.length===0&&osFuturas.length===0&&<div style={{fontSize:13,color:t.textSoft,padding:16,textAlign:'center'}}>Nenhum serviço agendado.</div>}
+
+          {/* JÁ REALIZADOS */}
+          {osRealizadas.length>0&&(
+            <div style={{fontSize:12,fontWeight:700,color:'#3B6D11',textTransform:'uppercase',letterSpacing:'.06em',margin:'20px 0 8px'}}>
+              Já realizados
+            </div>
+          )}
+          {osRealizadas.map(o=>{
+            const pct=o.usuarios?.comissao_percentual||0
+            const maoObra=Number(o.valor_mao_obra||0)
+            const ganhou=o.eh_taxa?(pct>0?maoObra/2:0):(pct>0?maoObra*pct/100:0)
+            return (
+              <div key={o.id} style={{background:t.bgCard,border:'1px solid #DCEAD0',borderRadius:12,padding:'12px 14px',marginBottom:8}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                  <div style={{flex:1,minWidth:0,marginRight:8}}>
+                    <div style={{fontWeight:600,color:t.text,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
+                    <div style={{fontSize:12,color:t.textSoft,marginTop:2}}>{o.produto||o.servico||'—'}{o.bairro?' · '+o.bairro.split(' - ').pop():''}</div>
+                  </div>
+                  <div style={{textAlign:'right',flexShrink:0}}>
+                    <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:10,fontWeight:600,background:'#EAF3DE',color:'#3B6D11'}}>
+                      {o.eh_taxa?'TAXA':'CONCLUÍDO'}
+                    </span>
+                    <div style={{fontSize:11,color:t.textSoft,marginTop:3}}>{o.data_conclusao?new Date(o.data_conclusao+'T12:00').toLocaleDateString('pt-BR'):''}</div>
+                  </div>
+                </div>
+                <div style={{display:'flex',justifyContent:'space-between',paddingTop:6,borderTop:'1px solid '+t.borderSoft,fontSize:12}}>
+                  <span style={{color:t.textSoft}}>Valor: <strong style={{color:t.text}}>{fmt(o.valor)}</strong></span>
+                  {ganhou>0&&<span style={{color:t.textSoft}}>Você: <strong style={{color:t.accent}}>{fmt(ganhou)}</strong></span>}
+                </div>
+              </div>
+            )
+          })}
+
+          {osHoje.length===0&&osFuturas.length===0&&osRealizadas.length===0&&<div style={{fontSize:13,color:t.textSoft,padding:16,textAlign:'center'}}>Nenhum serviço agendado.</div>}
         </>
       )}    </Layout>
   )
