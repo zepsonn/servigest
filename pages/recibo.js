@@ -37,7 +37,7 @@ export default function Recibo() {
   async function salvarNaOS() {
     setSalvando(true)
     const mudancas=[]
-    const campos={cliente_nome:'Nome',cliente_telefone:'Telefone',cliente_endereco:'Endereco',produto:'Produto',servico:'Servico',descricao:'Descricao',valor:'Valor',observacoes:'Obs'}
+    const campos={cliente_nome:'Nome',cliente_telefone:'Telefone',cliente_endereco:'Endereco',produto:'Produto',servico:'Servico',relato_cliente:'Relato',descricao:'Descricao',valor:'Valor',observacoes:'Obs'}
     for(const [k,label] of Object.entries(campos)){
       if(String(os[k]||'')!==String(form[k]||'')) mudancas.push(label+': "'+( os[k]||'-')+'" -> "'+( form[k]||'-')+'"')
     }
@@ -46,7 +46,7 @@ export default function Recibo() {
     const {error}=await supabase.from('ordens_servico').update({
       cliente_nome:form.cliente_nome,cliente_telefone:form.cliente_telefone,
       cliente_endereco:form.cliente_endereco,produto:form.produto,
-      servico:form.servico,descricao:form.descricao,
+      servico:form.servico,relato_cliente:form.relato_cliente,descricao:form.descricao,
       valor:Number(form.valor)||0,observacoes:form.observacoes,
       alterada:mudancas.length?true:os.alterada,historico_alteracoes:novoHist,
     }).eq('id',os.id)
@@ -60,7 +60,7 @@ export default function Recibo() {
     const telFormatado=formatarTelBR(form.cliente_telefone)
     if(telFormatado.length<12){alert('Telefone invalido');return}
     const linha='================================'
-    const msg=[empresa.nome,linha,'RECIBO - OS N. '+form.numero,linha,'','Cliente: '+(form.cliente_nome||'-'),'Telefone: '+(form.cliente_telefone||'-'),'Endereco: '+(form.cliente_endereco||'-'),'','Produto: '+(form.produto||'-'),'Servico: '+(form.servico||'-'),form.descricao?'Diagnostico: '+form.descricao:'','Data: '+fmtDate(form.data_entrada),'',linha,'VALOR TOTAL: '+fmt(form.valor),linha,'','Agradecemos pela confianca e preferencia!','Qualquer duvida estamos a disposicao.','',empresa.nome,'Tel: '+(empresa.telefone||''),'Email: '+(empresa.email||''),].filter(l=>l!==null).join('\n')
+    const msg=[empresa.nome,linha,'RECIBO - OS N. '+form.numero,linha,'','Cliente: '+(form.cliente_nome||'-'),'Telefone: '+(form.cliente_telefone||'-'),'Endereco: '+(form.cliente_endereco||'-'),'','Produto: '+(form.produto||'-'),'Servico: '+(form.servico||'-'),form.relato_cliente?'Relato do cliente: '+form.relato_cliente:null,form.descricao?'Diagnostico: '+form.descricao:'','Data: '+fmtDate(form.data_entrada),'',linha,'VALOR TOTAL: '+fmt(form.valor),linha,'','Agradecemos pela confianca e preferencia!','Qualquer duvida estamos a disposicao.','',empresa.nome,'Tel: '+(empresa.telefone||''),'Email: '+(empresa.email||''),].filter(l=>l!==null).join('\n')
     window.open('https://wa.me/'+telFormatado+'?text='+encodeURIComponent(msg),'_blank')
   }
 
@@ -147,6 +147,7 @@ export default function Recibo() {
                     <div><span style={{fontWeight:600,color:'#555'}}>Data conclusao:</span> {fmtDate(form.data_conclusao)}</div>
                   </div>
                   <div style={{marginBottom:8,fontSize:13}}><EditField campo="servico" label="Servico realizado"/></div>
+                  <div style={{marginBottom:8,fontSize:13}}><EditField campo="relato_cliente" label="Relato do cliente" textarea/></div>
                   <div style={{fontSize:13}}><EditField campo="descricao" label="Diagnostico" textarea/></div>
                 </div>
                 <div class="total-row" style={{display:'flex',justifyContent:'flex-end',alignItems:'center',gap:16,padding:'12px 0',borderTop:'2px solid #1D9E75',marginTop:8}}>

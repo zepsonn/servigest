@@ -34,7 +34,7 @@ const BAIRROS_CURITIBA = [
 
 const FORM0 = {
   cliente_id:'', cliente_nome:'', cliente_telefone:'', cliente_endereco:'',
-  bairro:'', produto:'', servico:'', descricao:'', valor:0,
+  bairro:'', produto:'', servico:'', relato_cliente:'', descricao:'', valor:0,
   status:'em_andamento', periodo:'', data_entrada:new Date().toISOString().split('T')[0],
   data_conclusao:'', tecnico_id:'', observacoes:''
 }
@@ -88,6 +88,7 @@ function FormOS({f,setF,t,agendamentos,tecnicos}){
       <FG label="Produto/Equipamento" value={f.produto||''} onChange={v=>setF({...f,produto:v})} t={t} placeholder="Ex: Geladeira Brastemp"/>
       <FG label="Serviço" value={f.servico||''} onChange={v=>setF({...f,servico:v})} t={t} placeholder="Ex: Manutenção"/>
     </div>
+    <FG label="Relato do cliente (o que ele falou)" value={f.relato_cliente||''} onChange={v=>setF({...f,relato_cliente:v})} t={t} textarea placeholder="Ex: Cliente disse que a geladeira não está gelando e faz barulho"/>
     <FG label="Diagnóstico / Descrição" value={f.descricao||''} onChange={v=>setF({...f,descricao:v})} t={t} textarea/>
 
     <div style={sec}>AGENDAMENTO</div>
@@ -161,7 +162,8 @@ export default function OS() {
     await supabase.from('ordens_servico').update({
       cliente_nome:editForm.cliente_nome, cliente_telefone:editForm.cliente_telefone,
       cliente_endereco:editForm.cliente_endereco, bairro:editForm.bairro,
-      produto:editForm.produto, servico:editForm.servico, descricao:editForm.descricao,
+      produto:editForm.produto, servico:editForm.servico,
+      relato_cliente:editForm.relato_cliente, descricao:editForm.descricao,
       valor:Number(editForm.valor)||0, status:editForm.status, periodo:editForm.periodo,
       data_entrada:editForm.data_entrada, data_conclusao:editForm.data_conclusao||null,
       tecnico_id:editForm.tecnico_id||null, observacoes:editForm.observacoes,
@@ -190,6 +192,7 @@ export default function OS() {
       `Data: ${fmtDataBR(o.data_entrada)}${o.periodo?' ('+(PERIODO_LABEL[o.periodo]||o.periodo)+')':''}`,
       o.produto?`Produto: ${o.produto}`:null,
       o.servico?`Serviço: ${o.servico}`:null,
+      o.relato_cliente?`Relato do cliente: ${o.relato_cliente}`:null,
       `Diagnóstico: ${o.descricao||'-'}`,
     ].filter(Boolean)
     const texto=linhas.join('\n')
@@ -277,6 +280,7 @@ export default function OS() {
                   <div><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Endereço</span><span style={{color:t.text}}>{o.cliente_endereco||'—'}</span></div>
                   <div><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Data entrada</span><span style={{color:t.text}}>{o.data_entrada?new Date(o.data_entrada+'T12:00').toLocaleDateString('pt-BR'):'—'}</span></div>
                   <div><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Valor</span><span style={{color:t.accent,fontWeight:700,fontSize:16}}>{fmt(o.valor)}</span></div>
+                  {o.relato_cliente&&<div style={{gridColumn:isMobile?'1':'1/-1'}}><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Relato do cliente</span><span style={{color:t.text}}>{o.relato_cliente}</span></div>}
                   {o.descricao&&<div style={{gridColumn:isMobile?'1':'1/-1'}}><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Diagnóstico</span><span style={{color:t.text}}>{o.descricao}</span></div>}
                   {o.observacoes&&<div style={{gridColumn:isMobile?'1':'1/-1'}}><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Observações</span><span style={{color:t.text}}>{o.observacoes}</span></div>}
                 </div>

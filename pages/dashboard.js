@@ -76,7 +76,7 @@ export default function Dashboard(){
         supabase.from('ordens_servico').select('valor,status,data_entrada,data_conclusao'),
         supabase.from('ordens_servico').select('valor,valor_mao_obra,valor_pecas,valor_taxa,eh_taxa,tecnico_id,data_conclusao,usuarios(nome,comissao_percentual)').eq('status','concluida'),
         supabase.from('despesas').select('valor'),
-        supabase.from('ordens_servico').select('id,numero,cliente_nome,cliente_telefone,cliente_endereco,bairro,produto,servico,descricao,periodo,status,data_entrada,valor,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
+        supabase.from('ordens_servico').select('id,numero,cliente_nome,cliente_telefone,cliente_endereco,bairro,produto,servico,descricao,relato_cliente,periodo,status,data_entrada,valor,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
           .eq('status','em_andamento')
           .lte('data_entrada',em7dias)
           .order('data_entrada'),
@@ -148,7 +148,7 @@ export default function Dashboard(){
       // tecnico — busca OS vinculadas a ele
       const [{ data: proximas }, { data: realizadas }] = await Promise.all([
         supabase.from('ordens_servico')
-          .select('id,numero,cliente_nome,cliente_telefone,cliente_endereco,bairro,produto,servico,descricao,periodo,status,data_entrada,valor,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
+          .select('id,numero,cliente_nome,cliente_telefone,cliente_endereco,bairro,produto,servico,descricao,relato_cliente,periodo,status,data_entrada,valor,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
           .eq('tecnico_id', u.id)
           .eq('status','em_andamento')
           .order('data_entrada'),
@@ -239,7 +239,7 @@ export default function Dashboard(){
     if(!data){setOsFiltradas([]);setAgendaFiltroData('');return}
     setBuscandoFiltro(true)
     const {data:os}=await supabase.from('ordens_servico')
-      .select('id,numero,cliente_nome,cliente_telefone,cliente_endereco,bairro,produto,servico,descricao,periodo,status,data_entrada,valor,valor_pecas,valor_taxa,eh_taxa,valor_mao_obra,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
+      .select('id,numero,cliente_nome,cliente_telefone,cliente_endereco,bairro,produto,servico,descricao,relato_cliente,periodo,status,data_entrada,valor,valor_pecas,valor_taxa,eh_taxa,valor_mao_obra,observacoes,tecnico_id,usuarios(nome,comissao_percentual)')
       .eq('data_entrada',data)
       .order('cliente_nome')
     setOsFiltradas(os||[])
@@ -308,6 +308,7 @@ export default function Dashboard(){
         {os.cliente_telefone&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Telefone:</span>{os.cliente_telefone}</div>}
         {os.cliente_endereco&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Endereço:</span>{os.cliente_endereco}</div>}
         {os.bairro&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Bairro:</span>{os.bairro}</div>}
+        {os.relato_cliente&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Relato:</span>{os.relato_cliente}</div>}
         {os.descricao&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Diagnóstico:</span>{os.descricao}</div>}
         {os.observacoes&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Obs:</span>{os.observacoes}</div>}
         {os.valor>0&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Valor:</span><strong style={{color:t.accent}}>{fmt(os.valor)}</strong></div>}
@@ -781,6 +782,7 @@ export default function Dashboard(){
                 {o.cliente_telefone&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Telefone:</span>{o.cliente_telefone}</div>}
                 {o.cliente_endereco&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Endereço:</span>{o.cliente_endereco}</div>}
                 {o.bairro&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Bairro:</span>{o.bairro.split(' - ').pop()}</div>}
+                {o.relato_cliente&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Relato:</span>{o.relato_cliente}</div>}
                 {o.descricao&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Diagnóstico:</span>{o.descricao}</div>}
                 {o.observacoes&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Obs:</span>{o.observacoes}</div>}
                 {o.data_entrada&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Data:</span>{new Date(o.data_entrada+'T12:00').toLocaleDateString('pt-BR')}</div>}
@@ -813,6 +815,7 @@ export default function Dashboard(){
                 {o.cliente_telefone&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Telefone:</span>{o.cliente_telefone}</div>}
                 {o.cliente_endereco&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Endereço:</span>{o.cliente_endereco}</div>}
                 {o.bairro&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Bairro:</span>{o.bairro.split(' - ').pop()}</div>}
+                {o.relato_cliente&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Relato:</span>{o.relato_cliente}</div>}
                 {o.descricao&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Diagnóstico:</span>{o.descricao}</div>}
                 {o.observacoes&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Obs:</span>{o.observacoes}</div>}
               </div>
