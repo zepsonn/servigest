@@ -146,6 +146,11 @@ export default function OS() {
     supabase.from('usuarios').select('id,nome').eq('ativo',true).order('nome').then(({data})=>setTecnicos(data||[]))
   },[])
 
+  // busca vinda da barra global do topo (/os?q=...)
+  useEffect(()=>{
+    if(router.query.q) setBusca(String(router.query.q))
+  },[router.query.q])
+
   async function loadOS(){
     const{data}=await supabase.from('ordens_servico').select('*, usuarios(nome,comissao_percentual)').order('cliente_nome')
     setLista(data||[])

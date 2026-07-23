@@ -23,6 +23,8 @@ function Icon({name, size=18}) {
   const paths = {
     dashboard:<><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></>,
     os:<><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></>,
+    clientes:<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></>,
+    busca:<><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
     importar:<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></>,
     estoque:<><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></>,
     vendas:<><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></>,
@@ -121,6 +123,7 @@ export default function Layout({ children, title = 'Dashboard' }) {
   const [user, setUser] = useState(null)
   const [temaAberto, setTemaAberto] = useState(false)
   const [menuAberto, setMenuAberto] = useState(false)
+  const [busca, setBusca] = useState('')
   const router = useRouter()
   const { t, mode, accent, changeMode, changeAccent } = useTheme()
   const isMobile = useIsMobile()
@@ -133,20 +136,25 @@ export default function Layout({ children, title = 'Dashboard' }) {
 
   useEffect(() => { setMenuAberto(false) }, [router.pathname])
   function logout() { localStorage.removeItem('servigest_user'); router.push('/') }
+  function buscarGlobal(e) {
+    e.preventDefault()
+    const q = busca.trim()
+    if (q) router.push('/os?q=' + encodeURIComponent(q))
+  }
   if (!user) return null
   const isGestor = user.role === 'gestor'
 
   const navGestor = [
-    { href: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
-    { href: '/os', icon: 'os', label: 'Ordens de Servico' },
-    { href: '/clientes', icon: 'clientes', label: 'Clientes' },
-    { href: '/importar', icon: 'importar', label: 'Importar via WhatsApp' },
-    { href: '/estoque', icon: 'estoque', label: 'Estoque' },
-    { href: '/vendas', icon: 'vendas', label: 'Vendas' },
-    { href: '/recibo', icon: 'recibo', label: 'Recibos' },
-    { href: '/faturamento', icon: 'faturamento', label: 'Faturamento' },
-    { href: '/despesas', icon: 'despesas', label: 'Despesas' },
-    { href: '/funcionarios', icon: 'funcionarios', label: 'Equipe' },
+    { href: '/dashboard', icon: 'dashboard', label: 'Dashboard', grupo: 'Operação' },
+    { href: '/os', icon: 'os', label: 'Ordens de Servico', grupo: 'Operação' },
+    { href: '/clientes', icon: 'clientes', label: 'Clientes', grupo: 'Operação' },
+    { href: '/importar', icon: 'importar', label: 'Importar via WhatsApp', grupo: 'Operação' },
+    { href: '/estoque', icon: 'estoque', label: 'Estoque', grupo: 'Loja' },
+    { href: '/vendas', icon: 'vendas', label: 'Vendas', grupo: 'Loja' },
+    { href: '/recibo', icon: 'recibo', label: 'Recibos', grupo: 'Loja' },
+    { href: '/faturamento', icon: 'faturamento', label: 'Faturamento', grupo: 'Gestão' },
+    { href: '/despesas', icon: 'despesas', label: 'Despesas', grupo: 'Gestão' },
+    { href: '/funcionarios', icon: 'funcionarios', label: 'Equipe', grupo: 'Gestão' },
   ]
   const navFunc = [
     { href: '/dashboard', icon: 'dashboard', label: 'Meus Servicos' },
@@ -229,22 +237,27 @@ export default function Layout({ children, title = 'Dashboard' }) {
 
   const s = {
     app:{display:'flex',height:'100vh',overflow:'hidden',background:t.bg,color:t.text},
-    sidebar:{width:220,borderRight:'1px solid '+t.border,display:'flex',flexDirection:'column',background:t.bgSidebar,flexShrink:0},
-    brandArea:{display:'flex',alignItems:'center',gap:10,padding:'14px 16px 12px',borderBottom:'1px solid '+t.border},
-    logoImg:{width:40,height:40,borderRadius:8,objectFit:'contain',flexShrink:0,background:'#fff'},
-    nav:{padding:'8px 10px',flex:1,display:'flex',flexDirection:'column',gap:2,overflow:'auto'},
-    navItem:{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',borderRadius:8,fontSize:13,color:t.textSoft},
+    sidebar:{width:236,borderRight:'1px solid '+t.border,display:'flex',flexDirection:'column',background:t.bgSidebar,flexShrink:0},
+    brandArea:{display:'flex',alignItems:'center',gap:11,padding:'16px 16px 12px'},
+    logoImg:{width:38,height:38,borderRadius:10,objectFit:'contain',flexShrink:0,background:'#fff'},
+    nav:{padding:'2px 12px 8px',flex:1,display:'flex',flexDirection:'column',gap:2,overflow:'auto'},
+    navGroup:{fontSize:9.5,fontWeight:700,textTransform:'uppercase',letterSpacing:'.1em',color:t.textSoft,padding:'15px 10px 6px'},
+    navItem:{display:'flex',alignItems:'center',gap:11,padding:'9px 10px',borderRadius:9,fontSize:13,color:t.textSoft},
     navActive:{background:t.dark?t.bgHover:t.accentSoft,color:t.accent,fontWeight:600},
-    themeBtn:{margin:'0 10px',padding:'8px 10px',borderRadius:8,border:'1px solid '+t.border,background:'transparent',fontSize:12,cursor:'pointer',color:t.textSoft,textAlign:'left',display:'flex',alignItems:'center',gap:8},
-    logoutBtn:{margin:10,padding:'8px 10px',borderRadius:8,border:'1px solid '+t.border,background:'transparent',fontSize:12,cursor:'pointer',color:t.textSoft,textAlign:'left',display:'flex',alignItems:'center',gap:8},
+    userChip:{display:'flex',alignItems:'center',gap:9,margin:'0 12px 8px',padding:'9px 10px',borderRadius:10,background:t.bgCard,border:'1px solid '+t.border},
+    userDot:{width:30,height:30,borderRadius:'50%',background:t.accent,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,flexShrink:0},
+    themeBtn:{margin:'0 12px',padding:'8px 10px',borderRadius:9,border:'1px solid '+t.border,background:'transparent',fontSize:12,cursor:'pointer',color:t.textSoft,textAlign:'left',display:'flex',alignItems:'center',gap:8},
+    logoutBtn:{margin:'8px 12px 12px',padding:'8px 10px',borderRadius:9,border:'1px solid '+t.border,background:'transparent',fontSize:12,cursor:'pointer',color:t.textSoft,textAlign:'left',display:'flex',alignItems:'center',gap:8},
     main:{flex:1,overflow:'auto',display:'flex',flexDirection:'column',background:t.bg},
-    topbar:{padding:'12px 24px',borderBottom:'1px solid '+t.border,background:t.bgCard,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0},
-    content:{padding:'20px 24px',flex:1,overflow:'auto'},
-    btnSm:{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 12px',borderRadius:8,border:'1px solid '+t.border,fontSize:12,fontWeight:500,color:t.text,background:t.bgCard},
+    topbar:{padding:'11px 22px',borderBottom:'1px solid '+t.border,background:t.bgCard,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexShrink:0},
+    searchWrap:{display:'flex',alignItems:'center',gap:8,background:t.bg,border:'1px solid '+t.border,borderRadius:9,padding:'7px 12px',color:t.textSoft,flex:1,maxWidth:330},
+    searchInput:{border:'none',background:'transparent',outline:'none',fontSize:13,fontFamily:'inherit',color:t.text,width:'100%'},
+    content:{padding:'22px 24px',flex:1,overflow:'auto'},
+    btnSm:{display:'inline-flex',alignItems:'center',gap:6,padding:'6px 13px',borderRadius:9,border:'1px solid '+t.border,fontSize:12,fontWeight:500,color:t.text,background:t.bgCard},
     btnPrimary:{background:t.accent,color:'#fff',border:'1px solid '+t.accent},
     opt:(active)=>({flex:1,padding:'5px 0',borderRadius:6,border:'1px solid '+(active?t.accent:t.border),background:active?t.accentSoft:'transparent',color:active?t.accentDark:t.textSoft,fontSize:11,cursor:'pointer',fontWeight:active?600:400,textAlign:'center'}),
     colorDot:(color,active)=>({width:26,height:26,borderRadius:'50%',background:color,cursor:'pointer',border:active?'3px solid '+t.text:'2px solid '+t.border}),
-    popover:{margin:'4px 10px 0',padding:12,borderRadius:10,border:'1px solid '+t.border,background:t.bgCard},
+    popover:{margin:'6px 12px 0',padding:12,borderRadius:11,border:'1px solid '+t.border,background:t.bgCard,boxShadow:t.shadow},
   }
 
   return (
@@ -255,12 +268,22 @@ export default function Layout({ children, title = 'Dashboard' }) {
           <div><div style={{fontSize:15,fontWeight:700,color:t.text}}>Top Eletro</div><div style={{fontSize:11,color:t.accent,fontWeight:600}}>Inova</div></div>
         </div>
         <nav style={s.nav}>
-          {nav.map(item=>(
-            <Link key={item.href} href={item.href} style={{...s.navItem,...(router.pathname===item.href?s.navActive:{})}}>
-              <Icon name={item.icon} size={17}/> {item.label}
-            </Link>
+          {nav.map((item,i)=>(
+            <div key={item.href} style={{display:'flex',flexDirection:'column',gap:2}}>
+              {item.grupo&&(i===0||nav[i-1].grupo!==item.grupo)&&<div style={s.navGroup}>{item.grupo}</div>}
+              <Link href={item.href} style={{...s.navItem,...(router.pathname===item.href?s.navActive:{})}}>
+                <Icon name={item.icon} size={17}/> {item.label}
+              </Link>
+            </div>
           ))}
         </nav>
+        <div style={s.userChip}>
+          <div style={s.userDot}>{(user.nome||'?').charAt(0).toUpperCase()}</div>
+          <div style={{minWidth:0}}>
+            <div style={{fontSize:12.5,fontWeight:600,color:t.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{user.nome||'Usuario'}</div>
+            <div style={{fontSize:10.5,color:t.textSoft}}>{isGestor?'Gestor':'Tecnico'}</div>
+          </div>
+        </div>
         <button style={s.themeBtn} onClick={()=>setTemaAberto(!temaAberto)}>
           <Icon name={t.dark?'lua':'sol'} size={15}/> Tema
         </button>
@@ -276,7 +299,15 @@ export default function Layout({ children, title = 'Dashboard' }) {
       </div>
       <div style={s.main}>
         <div style={s.topbar}>
-          <div style={{fontSize:16,fontWeight:500,color:t.text}}>{title}</div>
+          <div style={{display:'flex',alignItems:'center',gap:16,flex:1,minWidth:0}}>
+            <div style={{fontSize:17,fontWeight:600,color:t.text,whiteSpace:'nowrap',letterSpacing:'-.01em'}}>{title}</div>
+            {isGestor&&(
+              <form onSubmit={buscarGlobal} style={s.searchWrap}>
+                <Icon name="busca" size={15}/>
+                <input value={busca} onChange={e=>setBusca(e.target.value)} placeholder="Buscar cliente, OS, bairro..." style={s.searchInput}/>
+              </form>
+            )}
+          </div>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
             {isGestor&&<NotificacoesSino t={t}/>}
             {isGestor&&<Link href="/importar" style={{...s.btnSm,background:'#25D366',color:'#fff',border:'none'}}>WhatsApp</Link>}
