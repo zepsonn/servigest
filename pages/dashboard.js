@@ -389,7 +389,7 @@ export default function Dashboard(){
     const d=cardVal[card.id]
     const isDragging=edit&&dragIdx===idx
     const isOver=edit&&overIdx===idx&&dragIdx!==idx
-    const baseStyle={background:t.bgCard,border:'1px solid '+(isOver?t.accent:t.border),borderRadius:12,overflow:'hidden',gridColumn:colSpan(card.tamanho),opacity:isDragging?0.4:1,position:'relative',cursor:edit?'grab':'default'}
+    const baseStyle={background:t.bgCard,border:'1px solid '+(isOver?t.accent:t.border),borderRadius:12,boxShadow:t.shadow,overflow:'hidden',gridColumn:colSpan(card.tamanho),opacity:isDragging?0.4:1,position:'relative',cursor:edit?'grab':'default'}
     const dragProps=edit?{draggable:true,onDragStart:()=>dgStart(idx),onDragOver:e=>dgOver(e,idx),onDrop:e=>dgDrop(e,idx),onDragEnd:dgEnd}:{}
 
     // AGENDA
@@ -616,10 +616,10 @@ export default function Dashboard(){
     // CARD SIMPLES
     if(!d) return null
     return (
-      <div key={card.id} {...dragProps} style={{...baseStyle,padding:'16px 18px',border:'1px solid '+(isOver?t.accent:d.hl?t.accent:t.border)}}>
+      <div key={card.id} {...dragProps} style={{...baseStyle,padding:'16px 18px',border:'1px solid '+(isOver?t.accent:d.hl?t.accent:t.border),background:d.hl?(t.dark?t.bgHover:t.accentSoft):t.bgCard}}>
         {edit&&<EditOverlay card={card} t={t} onRemove={()=>remover(card.id)} onTam={tam=>setTam(card.id,tam)}/>}
-        <div style={{fontSize:12,color:t.textSoft,marginBottom:6}}>{card.label}</div>
-        <div style={{fontSize:isMobile?18:card.tamanho==='pequeno'?18:24,fontWeight:700,color:d.c||t.text}}>{d.v}</div>
+        <div style={{fontSize:11,color:t.textSoft,marginBottom:6,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>{card.label}</div>
+        <div style={{fontSize:isMobile?20:card.tamanho==='pequeno'?20:27,fontWeight:700,color:d.c||t.text,fontVariantNumeric:'tabular-nums',letterSpacing:'-.02em'}}>{d.v}</div>
         {d.sub&&<div style={{fontSize:11,color:t.textSoft,marginTop:4}}>{d.sub}</div>}
       </div>
     )
@@ -758,7 +758,7 @@ export default function Dashboard(){
         <>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:16}}>
             {[['Hoje',osHoje.length,t.accent],['Próximos',osFuturas.length,null],['Realizados',osRealizadas.length,'#3B6D11']].map(([l,v,cor])=>(
-              <div key={l} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:'12px 14px'}}><div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>{l}</div><div style={{fontSize:20,fontWeight:700,color:cor||t.text}}>{v}</div></div>
+              <div key={l} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:'12px 14px',boxShadow:t.shadow}}><div style={{fontSize:10,color:t.textSoft,marginBottom:4,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>{l}</div><div style={{fontSize:22,fontWeight:700,color:cor||t.text,fontVariantNumeric:'tabular-nums'}}>{v}</div></div>
             ))}
           </div>
           {osHoje.length>0&&(
@@ -767,7 +767,7 @@ export default function Dashboard(){
             </div>
           )}
           {osHoje.map(o=>(
-            <div key={o.id} style={{background:t.bgCard,border:'1px solid '+t.accent,borderRadius:12,padding:'14px',marginBottom:10}}>
+            <div key={o.id} style={{background:t.bgCard,border:'1px solid '+t.accent,borderRadius:12,padding:'14px',marginBottom:10,boxShadow:t.shadow}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
                 <div style={{flex:1,minWidth:0,marginRight:8}}>
                   <div style={{fontWeight:700,color:t.text,fontSize:16}}>{o.cliente_nome||'—'}</div>
@@ -800,7 +800,7 @@ export default function Dashboard(){
             </div>
           )}
           {osFuturas.map(o=>(
-            <div key={o.id} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:'14px',marginBottom:10}}>
+            <div key={o.id} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:'14px',marginBottom:10,boxShadow:t.shadow}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
                 <div style={{flex:1,minWidth:0,marginRight:8}}>
                   <div style={{fontWeight:600,color:t.text,fontSize:15}}>{o.cliente_nome||'—'}</div>
@@ -833,7 +833,7 @@ export default function Dashboard(){
             const maoObra=Number(o.valor_mao_obra||0)
             const ganhou=o.eh_taxa?(pct>0?maoObra/2:0):(pct>0?maoObra*pct/100:0)
             return (
-              <div key={o.id} style={{background:t.bgCard,border:'1px solid #DCEAD0',borderRadius:12,padding:'12px 14px',marginBottom:8}}>
+              <div key={o.id} style={{background:t.bgCard,border:'1px solid #DCEAD0',borderRadius:12,padding:'12px 14px',marginBottom:8,boxShadow:t.shadow}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
                   <div style={{flex:1,minWidth:0,marginRight:8}}>
                     <div style={{fontWeight:600,color:t.text,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>

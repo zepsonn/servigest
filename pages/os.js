@@ -235,9 +235,9 @@ export default function OS() {
       {/* CARDS DE STATUS */}
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}}>
         {[['Em andamento','em_andamento','#854F0B'],['Concluídas','concluida','#3B6D11']].map(([label,st,color])=>(
-          <div key={st} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,padding:'12px 14px'}}>
-            <div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>{label}</div>
-            <div style={{fontSize:22,fontWeight:700,color}}>{lista.filter(o=>o.status===st).length}</div>
+          <div key={st} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,padding:'12px 14px',boxShadow:t.shadow}}>
+            <div style={{fontSize:10,color:t.textSoft,marginBottom:4,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>{label}</div>
+            <div style={{fontSize:24,fontWeight:700,color,fontVariantNumeric:'tabular-nums'}}>{lista.filter(o=>o.status===st).length}</div>
           </div>
         ))}
       </div>
@@ -245,7 +245,7 @@ export default function OS() {
       {/* LISTA DE OS — visual limpo */}
       <div style={{display:'flex',flexDirection:'column',gap:8}}>
         {filtradas.map(o=>(
-          <div key={o.id} style={{background:t.bgCard,border:'1px solid '+(o.status==='concluida'?'#3B6D11':t.border),borderRadius:12,overflow:'hidden'}}>
+          <div key={o.id} style={{background:t.bgCard,border:'1px solid '+(o.status==='concluida'?'#3B6D11':t.border),borderRadius:12,overflow:'hidden',boxShadow:t.shadow}}>
             {/* LINHA PRINCIPAL — sempre visível */}
             <div style={{display:'flex',alignItems:'center',gap:0,cursor:'pointer'}} onClick={()=>setDetalhe(detalhe?.id===o.id?null:o)}>
               {/* cor status lateral */}
