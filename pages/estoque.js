@@ -53,10 +53,10 @@ export default function Estoque() {
 
   const s = {
     grid3:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:20},
-    stat:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,padding:'14px 16px'},
+    stat:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,padding:'14px 16px'},
     toolbar:{display:'flex',gap:8,marginBottom:16},
     search:{flex:1,padding:'8px 14px',borderRadius:8,border:'1px solid '+t.border,background:t.bgInput,fontSize:13,fontFamily:'inherit',color:t.text},
-    card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,overflow:'hidden'},
+    card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,overflow:'hidden'},
     table:{width:'100%',borderCollapse:'collapse',fontSize:13},
     th:{textAlign:'left',padding:'8px 12px',color:t.textSoft,fontWeight:500,fontSize:11,background:t.bgSidebar,borderBottom:'1px solid '+t.borderSoft},
     td:{padding:'9px 12px',borderBottom:'1px solid '+t.borderSoft,color:t.text},
@@ -69,9 +69,9 @@ export default function Estoque() {
   return (
     <Layout title="Estoque">
       <div style={s.grid3}>
-        <div style={s.stat}><div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>Itens em estoque</div><div style={{fontSize:22,fontWeight:700,color:t.text}}>{itensTotal}</div></div>
-        <div style={s.stat}><div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>Valor investido (custo)</div><div style={{fontSize:22,fontWeight:700,color:t.text}}>{fmt(valorEstoque)}</div></div>
-        <div style={s.stat}><div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>Produtos sem estoque</div><div style={{fontSize:22,fontWeight:700,color:semEstoque>0?'#A32D2D':t.text}}>{semEstoque}</div></div>
+        <div style={s.stat}><div style={{fontSize:10,color:t.textSoft,marginBottom:4,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>Itens em estoque</div><div style={{fontSize:24,fontWeight:700,fontVariantNumeric:'tabular-nums',color:t.text}}>{itensTotal}</div></div>
+        <div style={s.stat}><div style={{fontSize:10,color:t.textSoft,marginBottom:4,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>Valor investido (custo)</div><div style={{fontSize:24,fontWeight:700,fontVariantNumeric:'tabular-nums',color:t.text}}>{fmt(valorEstoque)}</div></div>
+        <div style={s.stat}><div style={{fontSize:10,color:t.textSoft,marginBottom:4,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>Produtos sem estoque</div><div style={{fontSize:24,fontWeight:700,fontVariantNumeric:'tabular-nums',color:semEstoque>0?'#A32D2D':t.text}}>{semEstoque}</div></div>
       </div>
       <div style={s.toolbar}>
         <input style={s.search} placeholder="Buscar por nome ou código..." value={busca} onChange={e=>setBusca(e.target.value)}/>

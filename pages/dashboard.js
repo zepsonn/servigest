@@ -398,7 +398,10 @@ export default function Dashboard(){
         <div key={card.id} {...dragProps} style={baseStyle}>
           {edit&&<EditOverlay card={card} t={t} onRemove={()=>remover(card.id)} onTam={tam=>setTam(card.id,tam)}/>}
           <div style={{padding:'14px 18px',borderBottom:'1px solid '+t.borderSoft,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
-            <span style={{fontSize:14,fontWeight:600,color:t.text}}>Agenda de serviços</span>
+            <span style={{display:'flex',alignItems:'center',gap:9}}>
+              <span style={{fontSize:14,fontWeight:600,color:t.text}}>Agenda de serviços</span>
+              {stats.hoje>0&&<span style={{fontSize:11,fontWeight:600,color:t.accent,background:t.dark?t.bgHover:t.accentSoft,borderRadius:999,padding:'3px 10px'}}>{stats.hoje} hoje</span>}
+            </span>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               <input type="date" value={agendaFiltroData} onChange={e=>buscarPorData(e.target.value)}
                 style={{padding:'5px 10px',borderRadius:8,border:'1px solid '+t.border,background:t.bgInput,color:t.text,fontSize:12,fontFamily:'inherit',cursor:'pointer'}}/>
@@ -621,6 +624,13 @@ export default function Dashboard(){
         <div style={{fontSize:11,color:t.textSoft,marginBottom:6,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>{card.label}</div>
         <div style={{fontSize:isMobile?20:card.tamanho==='pequeno'?20:27,fontWeight:700,color:d.c||t.text,fontVariantNumeric:'tabular-nums',letterSpacing:'-.02em'}}>{d.v}</div>
         {d.sub&&<div style={{fontSize:11,color:t.textSoft,marginTop:4}}>{d.sub}</div>}
+        {card.id==='faturamento'&&stats.meses.length>1&&(
+          <div style={{display:'flex',alignItems:'flex-end',gap:3,height:28,marginTop:10}} title="Ultimos 6 meses">
+            {stats.meses.map(([mes,val],i)=>(
+              <div key={mes} style={{flex:1,height:Math.max(Math.round(val/maxVal*100),8)+'%',background:i===stats.meses.length-1?t.accent:t.accent+'55',borderRadius:'3px 3px 0 0'}}/>
+            ))}
+          </div>
+        )}
       </div>
     )
   }

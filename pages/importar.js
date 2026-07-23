@@ -157,7 +157,7 @@ export default function Importar() {
       <div style={{maxWidth:640,margin:'0 auto'}}>
 
         {/* PASSO 1 — MODELO */}
-        <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,boxShadow:t.shadow,padding:20,marginBottom:16}}>
           <div style={{fontSize:14,fontWeight:600,color:t.text,marginBottom:4}}>1. Copie o modelo e envie para o cliente</div>
           <div style={{fontSize:12,color:t.textSoft,marginBottom:12}}>Mande essa mensagem no WhatsApp para o cliente preencher.</div>
           <pre style={{background:t.bgSidebar,border:'1px solid '+t.borderSoft,borderRadius:8,padding:14,fontSize:13,color:t.text,whiteSpace:'pre-wrap',marginBottom:12,fontFamily:'inherit'}}>{MODELO_MENSAGEM}</pre>
@@ -167,7 +167,7 @@ export default function Importar() {
         </div>
 
         {/* PASSO 2 — COLAR RESPOSTA */}
-        <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:20,marginBottom:16}}>
+        <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,boxShadow:t.shadow,padding:20,marginBottom:16}}>
           <div style={{fontSize:14,fontWeight:600,color:t.text,marginBottom:4}}>2. Cole a resposta do cliente aqui</div>
           <div style={{fontSize:12,color:t.textSoft,marginBottom:12}}>Copie a mensagem de resposta do cliente e cole abaixo.</div>
           <textarea

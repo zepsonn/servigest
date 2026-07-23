@@ -106,7 +106,7 @@ export default function Clientes() {
           <div style={{fontSize:12,color:t.textSoft,marginBottom:12}}>{filtrados.length} cliente{filtrados.length!==1?'s':''} encontrado{filtrados.length!==1?'s':''}</div>
           <div style={{display:'flex',flexDirection:'column',gap:8}}>
             {filtrados.map((c,i)=>(
-              <div key={i} onClick={()=>abrirCliente(c)} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:'14px 16px',cursor:'pointer',display:'flex',alignItems:'center',gap:12}}>
+              <div key={i} onClick={()=>abrirCliente(c)} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,boxShadow:t.shadow,padding:'14px 16px',cursor:'pointer',display:'flex',alignItems:'center',gap:12}}>
                 {/* avatar inicial */}
                 <div style={{width:40,height:40,borderRadius:'50%',background:t.accentSoft,color:t.accent,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:16,flexShrink:0}}>
                   {c.nome.charAt(0).toUpperCase()}
@@ -139,17 +139,17 @@ export default function Clientes() {
 
           {/* RESUMO */}
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:20}}>
-            <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,padding:'12px 14px'}}>
-              <div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>Total de OS</div>
-              <div style={{fontSize:20,fontWeight:700,color:t.text}}>{osCliente.length}</div>
+            <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,padding:'12px 14px'}}>
+              <div style={{fontSize:10,color:t.textSoft,marginBottom:4,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>Total de OS</div>
+              <div style={{fontSize:22,fontWeight:700,fontVariantNumeric:'tabular-nums',color:t.text}}>{osCliente.length}</div>
             </div>
-            <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,padding:'12px 14px'}}>
-              <div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>Total gasto</div>
-              <div style={{fontSize:20,fontWeight:700,color:t.accent}}>{fmt(osCliente.filter(o=>o.status==='concluida').reduce((s,o)=>s+Number(o.valor||0),0))}</div>
+            <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,padding:'12px 14px'}}>
+              <div style={{fontSize:10,color:t.textSoft,marginBottom:4,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>Total gasto</div>
+              <div style={{fontSize:22,fontWeight:700,fontVariantNumeric:'tabular-nums',color:t.accent}}>{fmt(osCliente.filter(o=>o.status==='concluida').reduce((s,o)=>s+Number(o.valor||0),0))}</div>
             </div>
-            <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,padding:'12px 14px'}}>
-              <div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>Em andamento</div>
-              <div style={{fontSize:20,fontWeight:700,color:'#854F0B'}}>{osCliente.filter(o=>o.status==='em_andamento').length}</div>
+            <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,padding:'12px 14px'}}>
+              <div style={{fontSize:10,color:t.textSoft,marginBottom:4,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>Em andamento</div>
+              <div style={{fontSize:22,fontWeight:700,fontVariantNumeric:'tabular-nums',color:'#854F0B'}}>{osCliente.filter(o=>o.status==='em_andamento').length}</div>
             </div>
           </div>
 
@@ -157,7 +157,7 @@ export default function Clientes() {
           <div style={{fontSize:13,fontWeight:600,color:t.text,marginBottom:12}}>Histórico de serviços</div>
           <div style={{display:'flex',flexDirection:'column',gap:8}}>
             {osCliente.map(o=>(
-              <div key={o.id} style={{background:t.bgCard,border:'1px solid '+(o.status==='concluida'?'#3B6D11':t.border),borderRadius:12,padding:'14px 16px'}}>
+              <div key={o.id} style={{background:t.bgCard,border:'1px solid '+(o.status==='concluida'?'#3B6D11':t.border),borderRadius:12,boxShadow:t.shadow,padding:'14px 16px'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
                   <div>
                     <div style={{fontWeight:600,color:t.text,fontSize:14}}>OS #{o.numero}</div>

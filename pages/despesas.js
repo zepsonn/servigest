@@ -51,8 +51,8 @@ export default function Despesas() {
 
   const s = {
     grid2:{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:12,marginBottom:20},
-    stat:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,padding:'14px 16px'},
-    card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,overflow:'hidden'},
+    stat:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,padding:'14px 16px'},
+    card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,overflow:'hidden'},
     table:{width:'100%',borderCollapse:'collapse',fontSize:13},
     th:{textAlign:'left',padding:'8px 12px',color:t.textSoft,fontWeight:500,fontSize:11,background:t.bgSidebar,borderBottom:'1px solid '+t.borderSoft},
     td:{padding:'9px 12px',borderBottom:'1px solid '+t.borderSoft,color:t.text},
@@ -66,8 +66,8 @@ export default function Despesas() {
   return (
     <Layout title="Despesas">
       <div style={s.grid2}>
-        <div style={s.stat}><div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>Total de despesas</div><div style={{fontSize:22,fontWeight:700,color:'#A32D2D'}}>{fmt(total)}</div></div>
-        <div style={s.stat}><div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>Despesas deste mês</div><div style={{fontSize:22,fontWeight:700,color:t.text}}>{fmt(totalMes)}</div></div>
+        <div style={s.stat}><div style={{fontSize:10,color:t.textSoft,marginBottom:4,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>Total de despesas</div><div style={{fontSize:24,fontWeight:700,fontVariantNumeric:'tabular-nums',color:'#A32D2D'}}>{fmt(total)}</div></div>
+        <div style={s.stat}><div style={{fontSize:10,color:t.textSoft,marginBottom:4,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>Despesas deste mês</div><div style={{fontSize:24,fontWeight:700,fontVariantNumeric:'tabular-nums',color:t.text}}>{fmt(totalMes)}</div></div>
       </div>
       <div style={{display:'flex',justifyContent:'flex-end',marginBottom:16}}>
         <button style={s.btnPrimary} onClick={()=>setModal(true)}>+ Nova despesa</button>

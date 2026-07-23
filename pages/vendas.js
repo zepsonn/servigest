@@ -91,8 +91,8 @@ export default function Vendas() {
   return (
     <Layout title="Vendas de Peças">
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}}>
-        <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,padding:'12px 14px'}}><div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>Vendas hoje</div><div style={{fontSize:20,fontWeight:700,color:t.text}}>{fmt(totalHoje)}</div></div>
-        <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,padding:'12px 14px'}}><div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>Lucro hoje</div><div style={{fontSize:20,fontWeight:700,color:'#3B6D11'}}>{fmt(lucroHoje)}</div></div>
+        <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,padding:'12px 14px'}}><div style={{fontSize:10,color:t.textSoft,marginBottom:4,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>Vendas hoje</div><div style={{fontSize:24,fontWeight:700,fontVariantNumeric:'tabular-nums',color:t.text}}>{fmt(totalHoje)}</div></div>
+        <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,padding:'12px 14px'}}><div style={{fontSize:10,color:t.textSoft,marginBottom:4,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>Lucro hoje</div><div style={{fontSize:24,fontWeight:700,fontVariantNumeric:'tabular-nums',color:'#3B6D11'}}>{fmt(lucroHoje)}</div></div>
       </div>
 
       <div style={{display:'flex',justifyContent:'flex-end',marginBottom:14}}>
@@ -103,7 +103,7 @@ export default function Vendas() {
       {isMobile?(
         <div>
           {vendas.map(v=>(
-            <div key={v.id} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:14,marginBottom:10}}>
+            <div key={v.id} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,boxShadow:t.shadow,padding:14,marginBottom:10}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}}>
                 <div><div style={{fontWeight:600,color:t.text}}>#{v.numero} · {v.cliente_nome||'Avulso'}</div><div style={{fontSize:12,color:t.textSoft}}>{v.data?new Date(v.data+'T12:00').toLocaleDateString('pt-BR'):''}</div></div>
                 <div style={{textAlign:'right'}}><div style={{fontWeight:700,color:t.text,fontSize:16}}>{fmt(v.total_venda)}</div><div style={{fontSize:12,color:'#3B6D11'}}>Lucro: {fmt(v.total_lucro)}</div></div>
@@ -117,7 +117,7 @@ export default function Vendas() {
           {vendas.length===0&&<div style={{padding:32,textAlign:'center',color:t.textSoft,fontSize:13}}>Nenhuma venda.</div>}
         </div>
       ):(
-        <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,overflow:'hidden'}}>
+        <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,overflow:'hidden'}}>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
             <thead><tr>{['Nº','Cliente','Total','Lucro','Data','Ações'].map(h=><th key={h} style={{textAlign:'left',padding:'8px 12px',color:t.textSoft,fontWeight:500,fontSize:11,background:t.bgSidebar,borderBottom:'1px solid '+t.borderSoft}}>{h}</th>)}</tr></thead>
             <tbody>{vendas.map(v=>(
@@ -180,7 +180,7 @@ export default function Vendas() {
                 <div style={{background:t.bgSidebar,borderRadius:8,padding:'12px 14px',marginBottom:12}}>
                   <div style={{display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:4,color:t.textSoft}}><span>Custo</span><span>{fmt(totalCusto)}</span></div>
                   <div style={{display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:6,color:'#3B6D11'}}><span>Lucro</span><span>{fmt(totalLucro)}</span></div>
-                  <div style={{display:'flex',justifyContent:'space-between',fontSize:20,fontWeight:700,color:t.text,borderTop:'1px solid '+t.border,paddingTop:8}}><span>Total</span><span>{fmt(totalVenda)}</span></div>
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:20,fontWeight:700,fontVariantNumeric:'tabular-nums',color:t.text,borderTop:'1px solid '+t.border,paddingTop:8}}><span>Total</span><span>{fmt(totalVenda)}</span></div>
                 </div>
                 <button style={{width:'100%',padding:'12px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:14,cursor:'pointer',fontWeight:600}} onClick={finalizarVenda}>Finalizar venda</button>
               </div>

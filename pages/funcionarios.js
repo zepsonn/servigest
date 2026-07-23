@@ -100,7 +100,7 @@ function Modal({title,onClose,children,t}){return <div style={{position:'fixed',
 function FG({label,value,onChange,t}){return <div style={{marginBottom:12}}><label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>{label}</label><input style={{width:'100%',padding:'7px 10px',borderRadius:8,border:'1px solid '+t.border,fontSize:13,fontFamily:'inherit',background:t.bgInput,color:t.text}} value={value} onChange={e=>onChange(e.target.value)}/></div>}
 function BtnRow({onCancel,onSave,t,label}){return <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:16}}><button style={{padding:'7px 14px',borderRadius:8,background:'transparent',color:t.textSoft,border:'1px solid '+t.border,fontSize:13,cursor:'pointer',fontFamily:'inherit'}} onClick={onCancel}>Cancelar</button><button style={{padding:'7px 14px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:13,cursor:'pointer',fontFamily:'inherit',fontWeight:500}} onClick={onSave}>{label||'Salvar'}</button></div>}
 function mk(t){return{
-  card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,overflow:'hidden'},
+  card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,overflow:'hidden'},
   table:{width:'100%',borderCollapse:'collapse',fontSize:13},
   th:{textAlign:'left',padding:'8px 12px',color:t.textSoft,fontWeight:500,fontSize:11,background:t.bgSidebar,borderBottom:'1px solid '+t.borderSoft},
   td:{padding:'9px 12px',borderBottom:'1px solid '+t.borderSoft,color:t.text},

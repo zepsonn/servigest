@@ -29,8 +29,8 @@ export default function Faturamento() {
 
   const s = {
     grid3:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:20},
-    stat:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,padding:'14px 16px'},
-    card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,padding:16,marginBottom:16},
+    stat:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,padding:'14px 16px'},
+    card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,padding:16,marginBottom:16},
     cardTitle:{fontSize:13,fontWeight:600,marginBottom:14,color:t.text},
     table:{width:'100%',borderCollapse:'collapse',fontSize:13},
     th:{textAlign:'left',padding:'8px 12px',color:t.textSoft,fontWeight:500,fontSize:11,background:t.bgSidebar,borderBottom:'1px solid '+t.borderSoft},
@@ -42,8 +42,8 @@ export default function Faturamento() {
       <div style={s.grid3}>
         {[[' Faturamento total',fmt(total),'OS concluídas'],['Pendente',fmt(aberto),'em aberto'],['Total OS',os.length,'no sistema']].map(([l,v,sub],i)=>(
           <div key={i} style={s.stat}>
-            <div style={{fontSize:11,color:t.textSoft,marginBottom:4}}>{l}</div>
-            <div style={{fontSize:20,fontWeight:700,color:t.text}}>{v}</div>
+            <div style={{fontSize:10,color:t.textSoft,marginBottom:4,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>{l}</div>
+            <div style={{fontSize:24,fontWeight:700,fontVariantNumeric:'tabular-nums',color:t.text}}>{v}</div>
             <div style={{fontSize:11,color:t.accent,marginTop:2}}>{sub}</div>
           </div>
         ))}

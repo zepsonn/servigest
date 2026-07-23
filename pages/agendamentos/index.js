@@ -184,7 +184,7 @@ export default function Agendamentos() {
           {agendamentos.length===0&&<div style={{padding:32,textAlign:'center',color:t.textSoft,fontSize:13}}>Nenhum agendamento.</div>}
         </div>
       ):(
-        <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,overflow:'hidden'}}>
+        <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,overflow:'hidden'}}>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
             <thead><tr>{['Cliente','Serviço','Data','Período','Valor','Funcionário','Status','Ações'].map(h=><th key={h} style={{textAlign:'left',padding:'8px 12px',color:t.textSoft,fontWeight:500,fontSize:11,background:t.bgSidebar,borderBottom:'1px solid '+t.borderSoft}}>{h}</th>)}</tr></thead>
             <tbody>{agendamentos.map(a=>(

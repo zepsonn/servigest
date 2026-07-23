@@ -86,7 +86,7 @@ export default function Recibo() {
   }
 
   const s = {
-    card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,overflow:'hidden'},
+    card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,overflow:'hidden'},
     btnSm:{padding:'6px 14px',borderRadius:8,border:'1px solid '+t.border,fontSize:12,cursor:'pointer',background:t.bgCard,fontFamily:'inherit',fontWeight:500,color:t.text},
     search:{width:'100%',padding:'8px 12px',borderRadius:8,border:'1px solid '+t.border,fontSize:13,fontFamily:'inherit',background:t.bgInput,color:t.text,marginBottom:12},
     osItem:{padding:'10px 14px',border:'1px solid '+t.border,borderRadius:8,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:13,background:t.bgSidebar,marginBottom:6},
@@ -96,7 +96,7 @@ export default function Recibo() {
     <Layout title="Recibo">
       <div style={{maxWidth:720,margin:'0 auto'}}>
         {!os&&(
-          <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,padding:24}}>
+          <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,padding:24}}>
             <div style={{fontSize:14,fontWeight:500,marginBottom:16,color:t.text}}>Selecionar Ordem de Servico</div>
             <OSSelector onSelect={carregarOS} t={t} s={s}/>
           </div>
@@ -111,7 +111,7 @@ export default function Recibo() {
               <button style={s.btnSm} onClick={imprimir}>Imprimir / PDF</button>
               <button style={{...s.btnSm,background:'#25D366',color:'#fff',border:'1px solid #25D366'}} onClick={sendWhatsApp}>Enviar WhatsApp</button>
             </div>
-            <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:28}}>
+            <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,boxShadow:t.shadow,padding:28}}>
               <div id="recibo-para-imprimir">
                 <div class="header" style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20,paddingBottom:16,borderBottom:'2px solid #e0e0e0'}}>
                   <div style={{display:'flex',alignItems:'center',gap:12}}>

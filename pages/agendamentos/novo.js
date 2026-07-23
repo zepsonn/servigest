@@ -73,7 +73,7 @@ export default function NovoAgendamento() {
   const servicos = ['Limpeza residencial','Limpeza comercial','Manutenção','Instalação','Reparo elétrico','Conserto','Diagnóstico','Outro']
 
   const s = {
-    box:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:24,maxWidth:560},
+    box:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,boxShadow:t.shadow,padding:24,maxWidth:560},
     h2:{fontSize:16,fontWeight:600,marginBottom:20,color:t.text},
     err:{fontSize:12,color:'#a32d2d',background:'#fcebeb',padding:'8px 12px',borderRadius:8,marginBottom:16},
     label:{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3},
