@@ -18,6 +18,7 @@ const CARDS_DEFAULT = [
   {id:'andamento',label:'Em andamento',tamanho:'pequeno'},
   {id:'concluidas',label:'Concluídas',tamanho:'pequeno'},
   {id:'hoje',label:'Agenda hoje',tamanho:'pequeno'},
+  {id:'localizacao',label:'Localização dos técnicos',tamanho:'medio'},
   {id:'agenda',label:'Agenda de serviços',tamanho:'largo'},
   {id:'por_tecnico',label:'Serviços por técnico hoje',tamanho:'largo'},
   {id:'grafico',label:'Receita por mês',tamanho:'largo'},
@@ -26,7 +27,13 @@ const CARDS_DEFAULT = [
 ]
 
 function loadConfig(){
-  try{ const c=JSON.parse(localStorage.getItem('db_cfg2')); return c&&c.length?c:CARDS_DEFAULT }
+  try{
+    const c=JSON.parse(localStorage.getItem('db_cfg2'))
+    if(!c||!c.length) return CARDS_DEFAULT
+    // acrescenta cards novos que ainda nao existiam na config salva
+    const faltando=CARDS_DEFAULT.filter(d=>!c.find(x=>x.id===d.id))
+    return faltando.length?[...c,...faltando]:c
+  }
   catch{ return CARDS_DEFAULT }
 }
 function saveConfig(c){ localStorage.setItem('db_cfg2',JSON.stringify(c)) }
@@ -65,6 +72,15 @@ export default function Dashboard(){
         const map={}; data.forEach(t=>{map[t.id]=t.comissao_percentual||0}); setComissoes(map)
       }
     })
+    // ultima localizacao de cada tecnico — so o gestor carrega isso
+    if(u.role==='gestor'){
+      supabase.from('localizacoes_tecnico').select('tecnico_id,lat,lng,criado_em')
+        .order('criado_em',{ascending:false}).limit(400).then(({data})=>{
+          if(!data) return
+          const m={}; data.forEach(l=>{ if(!m[l.tecnico_id]) m[l.tecnico_id]=l })
+          setLocais(m)
+        })
+    }
   },[])
 
   async function loadData(u){
@@ -175,6 +191,7 @@ export default function Dashboard(){
   const [painelObs, setPainelObs] = useState('')
   const [salvandoOS, setSalvandoOS] = useState(false)
   const [tecnicos, setTecnicos] = useState([])
+  const [locais, setLocais] = useState({})
   const [comissoes, setComissoes] = useState({})
 
   // verifica se é a 1a taxa do dia para esse tecnico (consultando OS ja concluidas com eh_taxa=true na mesma data)
@@ -611,6 +628,50 @@ export default function Dashboard(){
                 <span style={{width:90,textAlign:'right',fontWeight:600,color:t.text,fontSize:isMobile?11:12}}>{fmt(val)}</span>
               </div>
             })}
+          </div>
+        </div>
+      )
+    }
+
+    // LOCALIZACAO DOS TECNICOS — visivel so no dashboard do gestor.
+    // O tecnico nunca ve esse card (a tela dele e outra, mais abaixo no arquivo).
+    if(card.id==='localizacao'){
+      const agora=Date.now()
+      const lista=tecnicos.filter(tc=>tc.id!==user?.id)
+      return (
+        <div key={card.id} {...dragProps} style={baseStyle}>
+          {edit&&<EditOverlay card={card} t={t} onRemove={()=>remover(card.id)} onTam={tam=>setTam(card.id,tam)}/>}
+          <div style={{padding:'14px 18px',borderBottom:'1px solid '+t.borderSoft,display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+            <span style={{fontSize:14,fontWeight:600,color:t.text}}>Localização dos técnicos</span>
+            <span style={{fontSize:10.5,fontWeight:600,color:t.textSoft,background:t.bgSidebar,borderRadius:999,padding:'3px 10px',whiteSpace:'nowrap'}}>Só o gestor vê</span>
+          </div>
+          <div>
+            {lista.length===0&&<div style={{padding:20,fontSize:13,color:t.textSoft,textAlign:'center'}}>Nenhum técnico ativo.</div>}
+            {lista.map(tc=>{
+              const l=locais[tc.id]
+              const min=l?Math.floor((agora-new Date(l.criado_em).getTime())/60000):null
+              let cor=t.textSoft, texto='app não aberto ainda'
+              if(min!==null){
+                if(min<15){ cor='#3B6D11'; texto='ativo agora · visto há '+(min<1?'menos de 1':min)+' min' }
+                else if(min<180){ cor='#B4790C'; texto='última posição · há '+min+' min' }
+                else { texto='última posição · '+new Date(l.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) }
+              }
+              return (
+                <div key={tc.id} style={{display:'flex',alignItems:'center',gap:11,padding:'11px 18px',borderBottom:'1px solid '+t.borderSoft}}>
+                  <div style={{width:30,height:30,borderRadius:'50%',background:t.bgSidebar,color:t.textSoft,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,flexShrink:0}}>{(tc.nome||'?').charAt(0).toUpperCase()}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:600,color:t.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tc.nome}</div>
+                    <div style={{display:'flex',alignItems:'center',gap:6,fontSize:11.5,color:t.textSoft,marginTop:2}}>
+                      <span style={{width:6,height:6,borderRadius:'50%',background:cor,flexShrink:0}}/>{texto}
+                    </div>
+                  </div>
+                  {l&&<a href={'https://www.google.com/maps?q='+l.lat+','+l.lng} target="_blank" rel="noreferrer" style={{fontSize:11.5,fontWeight:600,color:t.accent,textDecoration:'none',flexShrink:0,padding:'5px 11px',borderRadius:7,border:'1px solid '+t.border}}>Mapa</a>}
+                </div>
+              )
+            })}
+          </div>
+          <div style={{padding:'10px 18px',fontSize:11.5,color:t.textSoft,background:t.bgSidebar,lineHeight:1.5}}>
+            Atualiza sozinho quando o técnico abre o app pra ver os serviços.
           </div>
         </div>
       )

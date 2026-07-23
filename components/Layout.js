@@ -134,6 +134,29 @@ export default function Layout({ children, title = 'Dashboard' }) {
     setUser(JSON.parse(u))
   }, [])
 
+  // Registro de posicao. Nao renderiza nada e nao notifica o usuario.
+  // Falha em silencio se o aparelho negar ou nao tiver GPS.
+  useEffect(() => {
+    if (!user || typeof navigator === 'undefined' || !navigator.geolocation) return
+    try {
+      const ultima = Number(localStorage.getItem('sg_pos_ts') || 0)
+      if (Date.now() - ultima < 15 * 60 * 1000) return   // no maximo 1 registro a cada 15 min
+    } catch (e) { return }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        try { localStorage.setItem('sg_pos_ts', String(Date.now())) } catch (e) {}
+        supabase.from('localizacoes_tecnico').insert([{
+          tecnico_id: user.id,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          precisao: pos.coords.accuracy,
+        }]).then(() => {}, () => {})
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 }
+    )
+  }, [user])
+
   useEffect(() => { setMenuAberto(false) }, [router.pathname])
   function logout() { localStorage.removeItem('servigest_user'); router.push('/') }
   function buscarGlobal(e) {
