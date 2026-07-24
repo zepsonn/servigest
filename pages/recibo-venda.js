@@ -33,7 +33,7 @@ export default function ReciboVenda() {
   const [empresa, setEmpresa] = useState({nome:'Top Eletro - Inova',cnpj:'82.668.070/0001-87',cidade:'Rua Professor Joao Barcelos, 2273 - Loja 02, Bairro Hauer - Curitiba, PR',telefone:'(41) 99846-1851 / 3206-7414',email:'tecnicainova@outlook.com'})
   const [numero, setNumero] = useState(()=>'V'+String(Date.now()).slice(-6))
   const [data, setData] = useState(new Date().toISOString().split('T')[0])
-  const [cliente, setCliente] = useState({nome:'',telefone:''})
+  const [cliente, setCliente] = useState({nome:'',telefone:'',endereco:''})
   const [itens, setItens] = useState([{descricao:'',qtd:1,valor:''}])
   const [troca, setTroca] = useState({valor:'',descricao:''})
   const [pagamento, setPagamento] = useState('')
@@ -73,7 +73,9 @@ export default function ReciboVenda() {
     if(tel.length<12){alert('Telefone do cliente invalido ou vazio.');return}
     const linha='================================'
     const L=[empresa.nome,linha,'RECIBO DE VENDA - N. '+numero,linha,'',
-      'Cliente: '+(cliente.nome||'-'),'Data: '+fmtDate(data),'','PRODUTOS:']
+      'Cliente: '+(cliente.nome||'-')]
+    if(cliente.endereco) L.push('Endereco: '+cliente.endereco)
+    L.push('Data: '+fmtDate(data),'','PRODUTOS:')
     itensValidos.forEach(it=>L.push('- '+(it.qtd||1)+'x '+(it.descricao||'item')+'  '+fmt(Number(it.qtd||0)*Number(it.valor||0))))
     L.push('','Total dos produtos: '+fmt(totalProdutos))
     if(valorTroca>0){ L.push('Troca'+(troca.descricao?' ('+troca.descricao+')':'')+': -'+fmt(valorTroca)) }
@@ -124,6 +126,7 @@ export default function ReciboVenda() {
             <div><label style={lbl}>Nome</label><input style={inp} value={cliente.nome} onChange={e=>setCliente({...cliente,nome:e.target.value})} placeholder="Nome do cliente"/></div>
             <div><label style={lbl}>Telefone (p/ WhatsApp)</label><input style={inp} value={cliente.telefone} onChange={e=>setCliente({...cliente,telefone:e.target.value})} placeholder="(41) 9....."/></div>
           </div>
+          <div style={{marginTop:10}}><label style={lbl}>Endereco</label><input style={inp} value={cliente.endereco} onChange={e=>setCliente({...cliente,endereco:e.target.value})} placeholder="Rua, numero, bairro - cidade"/></div>
 
           <div style={sec}>Produtos</div>
           {itens.map((it,i)=>(
@@ -197,10 +200,11 @@ export default function ReciboVenda() {
                 </div>
               </div>
 
-              {cliente.nome&&(
+              {(cliente.nome||cliente.telefone||cliente.endereco)&&(
                 <div className="rv-sec" style={{marginBottom:14}}>
                   <div className="rv-sec-title" style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:'#aaa',marginBottom:6,letterSpacing:'.05em'}}>Cliente</div>
-                  <div style={{fontSize:13,color:'#333'}}>{cliente.nome}{cliente.telefone?' · '+cliente.telefone:''}</div>
+                  <div style={{fontSize:13,color:'#333'}}>{cliente.nome||'—'}{cliente.telefone?' · '+cliente.telefone:''}</div>
+                  {cliente.endereco&&<div style={{fontSize:12.5,color:'#555',marginTop:2}}>{cliente.endereco}</div>}
                 </div>
               )}
 
