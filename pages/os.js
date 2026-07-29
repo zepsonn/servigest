@@ -60,7 +60,38 @@ function FG({label,value,onChange,t,type,textarea,placeholder}){
   </div>
 }
 
-function FormOS({f,setF,t,agendamentos,tecnicos}){
+// campo de servico com quebra de linha + sugestoes do que ja foi feito antes.
+// FORA do componente principal (senao o React recria e perde o foco).
+function CampoServico({f,setF,t,sugestoes}){
+  const [aberto,setAberto]=useState(false)
+  const v=f.servico||''
+  const linhas=v.split('\n')
+  const atual=(linhas[linhas.length-1]||'').trim().toLowerCase()
+  const lista=sugestoes.filter(s=>!atual||s.toLowerCase().includes(atual)).filter(s=>s.toLowerCase()!==atual).slice(0,8)
+  function escolher(s){
+    const l=v.split('\n'); l[l.length-1]=s
+    setF({...f,servico:l.join('\n')+'\n'}); setAberto(true)
+  }
+  const st={width:'100%',padding:'9px 10px',borderRadius:8,border:'1px solid '+t.border,fontSize:14,fontFamily:'inherit',background:t.bgInput,color:t.text,minHeight:76,resize:'vertical',lineHeight:1.5}
+  return <div style={{marginBottom:12}}>
+    <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>Serviço realizado <span style={{color:t.textSoft}}>(uma linha por serviço)</span></label>
+    <textarea style={st} value={v} placeholder={'Ex:\nTroca de motor\nCarga de gás'}
+      onChange={e=>setF({...f,servico:e.target.value})}
+      onFocus={()=>setAberto(true)} onBlur={()=>setTimeout(()=>setAberto(false),180)}/>
+    {aberto&&lista.length>0&&(
+      <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:6}}>
+        {lista.map(s=>(
+          <button key={s} type="button" onMouseDown={e=>e.preventDefault()} onClick={()=>escolher(s)}
+            style={{padding:'5px 11px',borderRadius:999,border:'1px solid '+t.border,background:t.bgCard,color:t.text,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>
+            + {s}
+          </button>
+        ))}
+      </div>
+    )}
+  </div>
+}
+
+function FormOS({f,setF,t,agendamentos,tecnicos,servicosSalvos}){
   const inp={width:'100%',padding:'9px 10px',borderRadius:8,border:'1px solid '+t.border,fontSize:14,fontFamily:'inherit',background:t.bgInput,color:t.text}
   const lbl={display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}
   const sec={fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.07em',color:t.textSoft,margin:'14px 0 8px',paddingBottom:6,borderBottom:'1px solid '+t.borderSoft}
@@ -84,10 +115,8 @@ function FormOS({f,setF,t,agendamentos,tecnicos}){
     </div>
 
     <div style={sec}>SERVIÇO</div>
-    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-      <FG label="Produto/Equipamento" value={f.produto||''} onChange={v=>setF({...f,produto:v})} t={t} placeholder="Ex: Geladeira Brastemp"/>
-      <FG label="Serviço" value={f.servico||''} onChange={v=>setF({...f,servico:v})} t={t} placeholder="Ex: Manutenção"/>
-    </div>
+    <FG label="Produto/Equipamento" value={f.produto||''} onChange={v=>setF({...f,produto:v})} t={t} placeholder="Ex: Geladeira Brastemp"/>
+    <CampoServico f={f} setF={setF} t={t} sugestoes={servicosSalvos||[]}/>
     <FG label="Relato do cliente (o que ele falou)" value={f.relato_cliente||''} onChange={v=>setF({...f,relato_cliente:v})} t={t} textarea placeholder="Ex: Cliente disse que a geladeira não está gelando e faz barulho"/>
     <FG label="Diagnóstico / Descrição" value={f.descricao||''} onChange={v=>setF({...f,descricao:v})} t={t} textarea/>
 
@@ -133,6 +162,7 @@ export default function OS() {
   const [detalhe, setDetalhe] = useState(null)
   const [editModal, setEditModal] = useState(null)
   const [tecnicos, setTecnicos] = useState([])
+  const [servicosSalvos, setServicosSalvos] = useState([])
   const [user, setUser] = useState(null)
   const [form, setForm] = useState(FORM0)
   const [editForm, setEditForm] = useState({})
@@ -154,6 +184,12 @@ export default function OS() {
   async function loadOS(){
     const{data}=await supabase.from('ordens_servico').select('*, usuarios(nome,comissao_percentual)').order('cliente_nome')
     setLista(data||[])
+    // monta a lista de servicos ja usados (mais frequentes primeiro)
+    const conta={}
+    ;(data||[]).forEach(o=>String(o.servico||'').split('\n').forEach(l=>{
+      const s=l.trim(); if(s.length>2) conta[s]=(conta[s]||0)+1
+    }))
+    setServicosSalvos(Object.entries(conta).sort((a,b)=>b[1]-a[1]).map(([s])=>s))
   }
 
   async function salvar(){
@@ -196,7 +232,9 @@ export default function OS() {
       `Endereço: ${o.cliente_endereco||'-'}${o.bairro?' - '+o.bairro:''}`,
       `Data: ${fmtDataBR(o.data_entrada)}${o.periodo?' ('+(PERIODO_LABEL[o.periodo]||o.periodo)+')':''}`,
       o.produto?`Produto: ${o.produto}`:null,
-      o.servico?`Serviço: ${o.servico}`:null,
+      o.servico?(String(o.servico).split('\n').filter(Boolean).length>1
+        ? 'Serviços realizados:\n'+String(o.servico).split('\n').filter(Boolean).map(l=>'- '+l.trim()).join('\n')
+        : `Serviço: ${o.servico}`):null,
       o.relato_cliente?`Relato do cliente: ${o.relato_cliente}`:null,
       `Diagnóstico: ${o.descricao||'-'}`,
     ].filter(Boolean)
@@ -264,7 +302,7 @@ export default function OS() {
                 {/* produto */}
                 <div>
                   <div style={{fontSize:13,color:t.text}}>{o.produto||'—'}</div>
-                  <div style={{fontSize:11,color:t.textSoft}}>{o.servico||''}</div>
+                  <div style={{fontSize:11,color:t.textSoft}}>{String(o.servico||'').split('\n').filter(Boolean).join(' · ')}</div>
                 </div>
                 {/* bairro */}
                 <div style={{fontSize:12,color:t.textSoft}}>{o.bairro||'—'}</div>
@@ -338,7 +376,7 @@ export default function OS() {
 
       {/* MODAL NOVA OS */}
       {modal&&<Modal title="Nova OS" onClose={()=>{setModal(false);setForm(FORM0)}} t={t} isMobile={isMobile}>
-        <FormOS f={form} setF={setForm} t={t} agendamentos={[]} tecnicos={tecnicos}/>
+        <FormOS f={form} setF={setForm} t={t} agendamentos={[]} tecnicos={tecnicos} servicosSalvos={servicosSalvos}/>
         <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:16}}>
           <button style={{padding:'10px 16px',borderRadius:8,background:'transparent',color:t.textSoft,border:'1px solid '+t.border,fontSize:14,cursor:'pointer'}} onClick={()=>{setModal(false);setForm(FORM0)}}>Cancelar</button>
           <button style={{padding:'10px 16px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:14,cursor:'pointer',fontWeight:500}} onClick={salvar}>Salvar OS</button>
@@ -347,7 +385,7 @@ export default function OS() {
 
       {/* MODAL EDITAR OS */}
       {editModal&&<Modal title={'Editar OS #'+editModal.numero} onClose={()=>setEditModal(null)} t={t} isMobile={isMobile}>
-        <FormOS f={editForm} setF={setEditForm} t={t} agendamentos={[]} tecnicos={tecnicos}/>
+        <FormOS f={editForm} setF={setEditForm} t={t} agendamentos={[]} tecnicos={tecnicos} servicosSalvos={servicosSalvos}/>
         <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:16}}>
           <button style={{padding:'10px 16px',borderRadius:8,background:'transparent',color:t.textSoft,border:'1px solid '+t.border,fontSize:14,cursor:'pointer'}} onClick={()=>setEditModal(null)}>Cancelar</button>
           <button style={{padding:'10px 16px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:14,cursor:'pointer',fontWeight:500}} onClick={salvarEdicao}>Salvar alterações</button>
