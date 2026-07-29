@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../lib/theme'
 import { useRouter } from 'next/router'
+import { TextoFormatado, MARCADORES, aplicarMarca } from '../lib/texto'
 
 function useIsMobile(){ const [m,setM]=useState(false); useEffect(()=>{const c=()=>setM(window.innerWidth<768);c();window.addEventListener('resize',c);return()=>window.removeEventListener('resize',c)},[]);return m }
 
@@ -64,7 +65,14 @@ function FG({label,value,onChange,t,type,textarea,placeholder}){
 // FORA do componente principal (senao o React recria e perde o foco).
 function CampoServico({f,setF,t,sugestoes}){
   const [aberto,setAberto]=useState(false)
+  const ref=useRef(null)
   const v=f.servico||''
+  function marcar(marca){
+    const el=ref.current; if(!el) return
+    const r=aplicarMarca(v,el.selectionStart,el.selectionEnd,marca)
+    setF({...f,servico:r.valor})
+    setTimeout(()=>{el.focus();el.setSelectionRange(r.inicio,r.fim)},0)
+  }
   const linhas=v.split('\n')
   const atual=(linhas[linhas.length-1]||'').trim().toLowerCase()
   const lista=sugestoes.filter(s=>!atual||s.toLowerCase().includes(atual)).filter(s=>s.toLowerCase()!==atual).slice(0,8)
@@ -75,7 +83,16 @@ function CampoServico({f,setF,t,sugestoes}){
   const st={width:'100%',padding:'9px 10px',borderRadius:8,border:'1px solid '+t.border,fontSize:14,fontFamily:'inherit',background:t.bgInput,color:t.text,minHeight:76,resize:'vertical',lineHeight:1.5}
   return <div style={{marginBottom:12}}>
     <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>Serviço realizado <span style={{color:t.textSoft}}>(uma linha por serviço)</span></label>
-    <textarea style={st} value={v} placeholder={'Ex:\nTroca de motor\nCarga de gás'}
+    <div style={{display:'flex',gap:5,marginBottom:5,alignItems:'center'}}>
+      {MARCADORES.map(m=>(
+        <button key={m.chave} type="button" title={m.chave} onMouseDown={e=>e.preventDefault()} onClick={()=>marcar(m.marca)}
+          style={{width:28,height:26,borderRadius:6,border:'1px solid '+t.border,background:t.bgCard,color:t.text,cursor:'pointer',fontSize:12,fontFamily:'inherit',...m.estilo}}>
+          {m.rotulo}
+        </button>
+      ))}
+      <span style={{fontSize:10.5,color:t.textSoft}}>selecione o texto e clique</span>
+    </div>
+    <textarea ref={ref} style={st} value={v} placeholder={'Ex:\nTroca de motor\nCarga de gás'}
       onChange={e=>setF({...f,servico:e.target.value})}
       onFocus={()=>setAberto(true)} onBlur={()=>setTimeout(()=>setAberto(false),180)}/>
     {aberto&&lista.length>0&&(
@@ -323,9 +340,10 @@ export default function OS() {
                   <div><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Endereço</span><span style={{color:t.text}}>{o.cliente_endereco||'—'}</span></div>
                   <div><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Data entrada</span><span style={{color:t.text}}>{o.data_entrada?new Date(o.data_entrada+'T12:00').toLocaleDateString('pt-BR'):'—'}</span></div>
                   <div><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Valor</span><span style={{color:t.accent,fontWeight:700,fontSize:16}}>{fmt(o.valor)}</span></div>
-                  {o.relato_cliente&&<div style={{gridColumn:isMobile?'1':'1/-1'}}><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Relato do cliente</span><span style={{color:t.text}}>{o.relato_cliente}</span></div>}
-                  {o.descricao&&<div style={{gridColumn:isMobile?'1':'1/-1'}}><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Diagnóstico</span><span style={{color:t.text}}>{o.descricao}</span></div>}
-                  {o.observacoes&&<div style={{gridColumn:isMobile?'1':'1/-1'}}><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Observações</span><span style={{color:t.text}}>{o.observacoes}</span></div>}
+                  {o.servico&&<div style={{gridColumn:isMobile?'1':'1/-1'}}><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Serviço realizado</span><TextoFormatado texto={o.servico} style={{color:t.text}}/></div>}
+                  {o.relato_cliente&&<div style={{gridColumn:isMobile?'1':'1/-1'}}><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Relato do cliente</span><TextoFormatado texto={o.relato_cliente} style={{color:t.text}}/></div>}
+                  {o.descricao&&<div style={{gridColumn:isMobile?'1':'1/-1'}}><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Diagnóstico</span><TextoFormatado texto={o.descricao} style={{color:t.text}}/></div>}
+                  {o.observacoes&&<div style={{gridColumn:isMobile?'1':'1/-1'}}><span style={{fontSize:11,color:t.textSoft,display:'block'}}>Observações</span><TextoFormatado texto={o.observacoes} style={{color:t.text}}/></div>}
                 </div>
 
                 {/* DETALHAMENTO FINANCEIRO — só quando concluída */}
