@@ -29,8 +29,8 @@ export default function Faturamento() {
 
   const s = {
     grid3:{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:20},
-    stat:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,padding:'14px 16px'},
-    card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,padding:16,marginBottom:16},
+    stat:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:16,boxShadow:t.shadow,padding:'14px 16px'},
+    card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:16,boxShadow:t.shadow,padding:16,marginBottom:16},
     cardTitle:{fontSize:13,fontWeight:600,marginBottom:14,color:t.text},
     table:{width:'100%',borderCollapse:'collapse',fontSize:13},
     th:{textAlign:'left',padding:'8px 12px',color:t.textSoft,fontWeight:500,fontSize:11,background:t.bgSidebar,borderBottom:'1px solid '+t.borderSoft},

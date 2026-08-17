@@ -406,7 +406,7 @@ export default function Dashboard(){
     const d=cardVal[card.id]
     const isDragging=edit&&dragIdx===idx
     const isOver=edit&&overIdx===idx&&dragIdx!==idx
-    const baseStyle={background:t.bgCard,border:'1px solid '+(isOver?t.accent:t.border),borderRadius:12,boxShadow:t.shadow,overflow:'hidden',gridColumn:colSpan(card.tamanho),opacity:isDragging?0.4:1,position:'relative',cursor:edit?'grab':'default'}
+    const baseStyle={background:t.bgCard,border:'1px solid '+(isOver?t.accent:t.border),borderRadius:16,boxShadow:t.shadow,overflow:'hidden',gridColumn:colSpan(card.tamanho),opacity:isDragging?0.4:1,position:'relative',cursor:edit?'grab':'default'}
     const dragProps=edit?{draggable:true,onDragStart:()=>dgStart(idx),onDragOver:e=>dgOver(e,idx),onDrop:e=>dgDrop(e,idx),onDragEnd:dgEnd}:{}
 
     // AGENDA

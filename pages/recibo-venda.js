@@ -111,7 +111,7 @@ export default function ReciboVenda() {
         <style>{`@media(max-width:900px){.rv-cols{grid-template-columns:1fr !important}}`}</style>
 
         {/* ================= FORMULARIO ================= */}
-        <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,boxShadow:t.shadow,padding:'18px 20px'}}>
+        <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:16,boxShadow:t.shadow,padding:'18px 20px'}}>
           <div style={{fontSize:15,fontWeight:700,color:t.text,marginBottom:4}}>Preencher recibo</div>
           <div style={{fontSize:12,color:t.textSoft}}>Os campos aparecem no recibo ao lado em tempo real.</div>
 
@@ -180,7 +180,7 @@ export default function ReciboVenda() {
             <button style={{...btnGh,background:'#25D366',color:'#fff',border:'1px solid #25D366'}} onClick={sendWhatsApp}>Enviar WhatsApp</button>
           </div>
 
-          <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,boxShadow:t.shadow,padding:22}}>
+          <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:16,boxShadow:t.shadow,padding:22}}>
             {/* tudo aqui dentro imprime — cores fixas de "papel", independente do tema */}
             <div id="recibo-venda-print" style={{background:'#fff',color:'#1a1a1a',borderRadius:8,padding:6}}>
               <div className="rv-header" style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20,paddingBottom:16,borderBottom:'2px solid #e0e0e0'}}>

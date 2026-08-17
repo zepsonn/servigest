@@ -51,8 +51,8 @@ export default function Despesas() {
 
   const s = {
     grid2:{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:12,marginBottom:20},
-    stat:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,padding:'14px 16px'},
-    card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,boxShadow:t.shadow,overflow:'hidden'},
+    stat:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:16,boxShadow:t.shadow,padding:'14px 16px'},
+    card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:16,boxShadow:t.shadow,overflow:'hidden'},
     table:{width:'100%',borderCollapse:'collapse',fontSize:13},
     th:{textAlign:'left',padding:'8px 12px',color:t.textSoft,fontWeight:500,fontSize:11,background:t.bgSidebar,borderBottom:'1px solid '+t.borderSoft},
     td:{padding:'9px 12px',borderBottom:'1px solid '+t.borderSoft,color:t.text},
