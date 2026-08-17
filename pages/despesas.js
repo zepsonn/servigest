@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../lib/theme'
+import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
 import { useRouter } from 'next/router'
 
 // fora do componente (corrige bug de foco)
@@ -82,8 +83,8 @@ export default function Despesas() {
               <td style={s.td}><strong style={{color:'#A32D2D'}}>{fmt(d.valor)}</strong></td>
               <td style={s.td}>{d.data?new Date(d.data+'T12:00').toLocaleDateString('pt-BR'):'—'}</td>
               <td style={s.td}><div style={{display:'flex',gap:5}}>
-                <button style={s.btnSm} onClick={()=>{setEditForm({...d});setEditModal(d)}}>✏️ Editar</button>
-                <button style={{...s.btnSm,color:'#A32D2D',borderColor:'#FCEBEB'}} onClick={()=>apagar(d)}>🗑️ Apagar</button>
+                <BotaoIco n="editar" t={t} size={34} titulo="Editar despesa" onClick={()=>{setEditForm({...d});setEditModal(d)}}/>
+                <BotaoIco n="apagar" t={t} size={34} tom="perigo" titulo="Apagar despesa" onClick={()=>apagar(d)}/>
               </div></td>
             </tr>
           ))}</tbody>

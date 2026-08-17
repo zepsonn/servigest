@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useTheme } from '../lib/theme'
 import { useRouter } from 'next/router'
 import { TextoFormatado, MARCADORES, aplicarMarca } from '../lib/texto'
+import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
 
 function useIsMobile(){ const [m,setM]=useState(false); useEffect(()=>{const c=()=>setM(window.innerWidth<768);c();window.addEventListener('resize',c);return()=>window.removeEventListener('resize',c)},[]);return m }
 
@@ -85,9 +86,11 @@ function CampoServico({f,setF,t,sugestoes}){
     <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>Serviço realizado <span style={{color:t.textSoft}}>(uma linha por serviço)</span></label>
     <div style={{display:'flex',gap:5,marginBottom:5,alignItems:'center'}}>
       {MARCADORES.map(m=>(
-        <button key={m.chave} type="button" title={m.chave} onMouseDown={e=>e.preventDefault()} onClick={()=>marcar(m.marca)}
-          style={{width:28,height:26,borderRadius:6,border:'1px solid '+t.border,background:t.bgCard,color:t.text,cursor:'pointer',fontSize:12,fontFamily:'inherit',...m.estilo}}>
-          {m.rotulo}
+        <button key={m.chave} type="button" title={m.chave} aria-label={m.chave} className="sg-btn"
+          onMouseDown={e=>e.preventDefault()} onClick={()=>marcar(m.marca)}
+          style={{width:34,height:34,borderRadius:'50%',border:'1px solid '+t.border,background:t.bgCard,color:t.text,
+                  cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',justifyContent:'center',padding:0}}>
+          <Ico n={m.chave} size={15}/>
         </button>
       ))}
       <span style={{fontSize:10.5,color:t.textSoft}}>selecione o texto e clique</span>
@@ -364,8 +367,8 @@ export default function OS() {
                   }
                   return (
                     <div style={{background:t.bgCard,border:'1px solid '+t.borderSoft,borderRadius:8,padding:'12px 14px',marginBottom:12}}>
-                      <div style={{fontSize:11,fontWeight:700,color:t.textSoft,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>
-                        {ehTaxa?'💰 Detalhamento — Taxa de visita':'💰 Detalhamento financeiro'}
+                      <div style={{fontSize:11,fontWeight:700,color:t.textSoft,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8,display:'flex',alignItems:'center',gap:6}}>
+                        <Ico n="dinheiro" size={14}/>{ehTaxa?'Detalhamento — Taxa de visita':'Detalhamento financeiro'}
                       </div>
                       <div style={{display:'flex',flexDirection:'column',gap:5,fontSize:13}}>
                         <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:t.textSoft}}>{ehTaxa?'Valor da taxa':'Valor total cobrado'}</span><strong style={{color:t.text}}>{fmt(valorTotal)}</strong></div>
@@ -378,12 +381,15 @@ export default function OS() {
                     </div>
                   )
                 })()}
-                <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                  {o.status!=='concluida'&&<button style={{padding:'7px 14px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:12,cursor:'pointer',fontWeight:500}} onClick={()=>concluir(o.id)}>✓ Concluir</button>}
-                  <button style={{padding:'7px 14px',borderRadius:8,border:'1px solid '+t.border,background:t.bgCard,color:t.text,fontSize:12,cursor:'pointer'}} onClick={()=>{setEditForm({...o,tecnico_id:o.tecnico_id||''});setEditModal(o);setDetalhe(null)}}>✏️ Editar</button>
-                  <button style={{padding:'7px 14px',borderRadius:8,border:'1px solid '+t.border,background:t.bgCard,color:t.text,fontSize:12,cursor:'pointer'}} onClick={()=>router.push('/recibo?os='+o.id)}>🧾 Recibo</button>
-                  <button style={{padding:'7px 14px',borderRadius:8,border:'1px solid #DCF0E5',background:t.bgCard,color:'#1D9E75',fontSize:12,cursor:'pointer'}} onClick={()=>copiarParaWhatsapp(o)}>📋 Copiar p/ WhatsApp</button>
-                  {isGestor&&<button style={{padding:'7px 14px',borderRadius:8,border:'1px solid #FCEBEB',background:t.bgCard,color:'#A32D2D',fontSize:12,cursor:'pointer'}} onClick={()=>apagar(o)}>🗑️ Apagar</button>}
+                <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+                  {o.status!=='concluida'&&(
+                    <BotaoPill n="confirmar" t={t} onClick={()=>concluir(o.id)}
+                      style={{background:t.accent,color:'#fff',border:'1px solid '+t.accent,boxShadow:'0 6px 14px -5px '+t.accent+'99'}}>Concluir</BotaoPill>
+                  )}
+                  <BotaoIco n="editar"   t={t} titulo="Editar OS"          onClick={()=>{setEditForm({...o,tecnico_id:o.tecnico_id||''});setEditModal(o);setDetalhe(null)}}/>
+                  <BotaoIco n="recibo"   t={t} titulo="Gerar recibo"       onClick={()=>router.push('/recibo?os='+o.id)}/>
+                  <BotaoIco n="whatsapp" t={t} titulo="Copiar p/ WhatsApp" tom="zap" onClick={()=>copiarParaWhatsapp(o)}/>
+                  {isGestor&&<BotaoIco n="apagar" t={t} titulo="Apagar OS" tom="perigo" onClick={()=>apagar(o)}/>}
                 </div>
               </div>
             )}

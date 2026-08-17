@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
-import { useTheme } from '../lib/theme'
+import { useTheme, grad, GRADIENTES } from '../lib/theme'
 import { useRouter } from 'next/router'
+import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
+
+function useIsMobile(){ const [m,setM]=useState(false); useEffect(()=>{const c=()=>setM(window.innerWidth<768);c();window.addEventListener('resize',c);return()=>window.removeEventListener('resize',c)},[]);return m }
 
 function FG({label,value,onChange,t,type}){
   const st={width:'100%',padding:'7px 10px',borderRadius:8,border:'1px solid '+t.border,fontSize:13,fontFamily:'inherit',background:t.bgInput,color:t.text}
@@ -17,6 +20,7 @@ export default function Estoque() {
   const [form, setForm] = useState({nome:'',codigo:'',quantidade:0,preco_custo:0,preco_venda:0})
   const [editForm, setEditForm] = useState({})
   const { t } = useTheme()
+  const isMobile = useIsMobile()
   const router = useRouter()
 
   useEffect(()=>{
@@ -74,10 +78,57 @@ export default function Estoque() {
         <div style={s.stat}><div style={{fontSize:10,color:t.textSoft,marginBottom:4,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>Produtos sem estoque</div><div style={{fontSize:24,fontWeight:700,fontVariantNumeric:'tabular-nums',color:semEstoque>0?'#A32D2D':t.text}}>{semEstoque}</div></div>
       </div>
       <div style={s.toolbar}>
-        <input style={s.search} placeholder="Buscar por nome ou código..." value={busca} onChange={e=>setBusca(e.target.value)}/>
-        <button style={s.btnPrimary} onClick={()=>setModal(true)}>+ Novo produto</button>
+        <div style={{flex:1,display:'flex',alignItems:'center',gap:8,background:t.bgInput,border:'1px solid '+t.border,borderRadius:999,padding:'0 16px',height:44,color:t.textSoft}}>
+          <Ico n="busca" size={16}/>
+          <input style={{flex:1,border:'none',background:'transparent',outline:'none',fontSize:13.5,fontFamily:'inherit',color:t.text}}
+            placeholder="Buscar produto ou código..." value={busca} onChange={e=>setBusca(e.target.value)}/>
+        </div>
+        <BotaoPill n="mais" t={t} onClick={()=>setModal(true)}
+          style={{background:grad('estoque'),color:'#fff',border:'none',height:44,boxShadow:'0 8px 18px -6px '+GRADIENTES.estoque[1]+'99'}}>
+          {isMobile?'Novo':'Novo produto'}
+        </BotaoPill>
       </div>
+      {/* ---------- CELULAR: cards (tabela nao cabe na tela) ---------- */}
+      {isMobile?(
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {filtrados.map(p=>{
+            const lucro=Number(p.preco_venda||0)-Number(p.preco_custo||0)
+            const qtd=Number(p.quantidade||0)
+            const semEst=qtd<=0
+            return (
+              <div key={p.id} className="sg-card" style={{background:t.bgCard,border:'1px solid '+(semEst?'#f0cccc':t.border),borderRadius:16,boxShadow:t.shadow,padding:'13px 14px'}}>
+                <div style={{display:'flex',alignItems:'flex-start',gap:11}}>
+                  <div style={{width:44,height:44,borderRadius:13,flexShrink:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+                               background:semEst?'#fdeaea':grad('estoque'),color:semEst?'#C24141':'#fff',
+                               boxShadow:semEst?'none':'0 6px 14px -5px '+GRADIENTES.estoque[1]+'99'}}>
+                    <span style={{fontSize:16,fontWeight:800,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{qtd}</span>
+                    <span style={{fontSize:8,opacity:.85,letterSpacing:'.04em'}}>UN</span>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:14,fontWeight:600,color:t.text,lineHeight:1.3}}>{p.nome}</div>
+                    {p.codigo&&<div style={{fontSize:11,color:t.textSoft,marginTop:3,fontFamily:'ui-monospace,monospace'}}>{p.codigo}</div>}
+                  </div>
+                </div>
+                <div style={{display:'flex',gap:8,marginTop:11,alignItems:'center'}}>
+                  <div style={{flex:1,display:'flex',gap:14}}>
+                    <div><div style={{fontSize:9.5,color:t.textSoft,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>Custo</div>
+                      <div style={{fontSize:13,color:t.text,fontVariantNumeric:'tabular-nums'}}>{fmt(p.preco_custo)}</div></div>
+                    <div><div style={{fontSize:9.5,color:t.textSoft,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>Venda</div>
+                      <div style={{fontSize:13,fontWeight:700,color:t.text,fontVariantNumeric:'tabular-nums'}}>{fmt(p.preco_venda)}</div></div>
+                    <div><div style={{fontSize:9.5,color:t.textSoft,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>Lucro</div>
+                      <div style={{fontSize:13,fontWeight:700,color:lucro>0?'#2E7A3E':lucro<0?'#C24141':t.textSoft,fontVariantNumeric:'tabular-nums'}}>{fmt(lucro)}</div></div>
+                  </div>
+                  <BotaoIco n="editar" t={t} size={38} titulo="Editar produto" onClick={()=>{setEditForm({...p,codigo:p.codigo||''});setEditModal(p)}}/>
+                  <BotaoIco n="apagar" t={t} size={38} tom="perigo" titulo="Apagar produto" onClick={()=>apagar(p)}/>
+                </div>
+              </div>
+            )
+          })}
+          {filtrados.length===0&&<div style={{padding:28,textAlign:'center',color:t.textSoft,fontSize:13}}>Nenhum produto encontrado.</div>}
+        </div>
+      ):(
       <div style={s.card}>
+        <div style={{overflowX:'auto'}}>
         <table style={s.table}>
           <thead><tr>{['Código','Produto','Qtd','Custo','Venda','Lucro/un','Ações'].map(h=><th key={h} style={s.th}>{h}</th>)}</tr></thead>
           <tbody>{filtrados.map(p=>{
@@ -86,20 +137,22 @@ export default function Estoque() {
               <tr key={p.id}>
                 <td style={s.td}><code style={{fontSize:11,background:t.bgSidebar,padding:'2px 6px',borderRadius:4,color:t.textSoft}}>{p.codigo||'—'}</code></td>
                 <td style={s.td}><strong style={{color:t.text}}>{p.nome}</strong></td>
-                <td style={s.td}><span style={{fontWeight:600,color:Number(p.quantidade)<=0?'#A32D2D':t.text}}>{p.quantidade}</span></td>
-                <td style={s.td}>{fmt(p.preco_custo)}</td>
-                <td style={s.td}><strong style={{color:t.text}}>{fmt(p.preco_venda)}</strong></td>
-                <td style={s.td}><span style={{color:lucro>=0?'#3B6D11':'#A32D2D',fontWeight:500}}>{fmt(lucro)}</span></td>
-                <td style={s.td}><div style={{display:'flex',gap:5}}>
-                  <button style={s.btnSm} onClick={()=>{setEditForm({...p,codigo:p.codigo||''});setEditModal(p)}}>✏️ Editar</button>
-                  <button style={{...s.btnSm,color:'#A32D2D',borderColor:'#FCEBEB'}} onClick={()=>apagar(p)}>🗑️</button>
+                <td style={s.td}><span style={{fontWeight:700,fontVariantNumeric:'tabular-nums',color:Number(p.quantidade)<=0?'#C24141':t.text}}>{p.quantidade}</span></td>
+                <td style={s.td}><span style={{fontVariantNumeric:'tabular-nums'}}>{fmt(p.preco_custo)}</span></td>
+                <td style={s.td}><strong style={{color:t.text,fontVariantNumeric:'tabular-nums'}}>{fmt(p.preco_venda)}</strong></td>
+                <td style={s.td}><span style={{color:lucro>=0?'#2E7A3E':'#C24141',fontWeight:600,fontVariantNumeric:'tabular-nums'}}>{fmt(lucro)}</span></td>
+                <td style={s.td}><div style={{display:'flex',gap:6}}>
+                  <BotaoIco n="editar" t={t} size={34} titulo="Editar produto" onClick={()=>{setEditForm({...p,codigo:p.codigo||''});setEditModal(p)}}/>
+                  <BotaoIco n="apagar" t={t} size={34} tom="perigo" titulo="Apagar produto" onClick={()=>apagar(p)}/>
                 </div></td>
               </tr>
             )
           })}</tbody>
         </table>
+        </div>
         {filtrados.length===0&&<div style={{padding:24,textAlign:'center',color:t.textSoft,fontSize:13}}>Nenhum produto encontrado.</div>}
       </div>
+      )}
 
       {modal&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.55)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center'}}>

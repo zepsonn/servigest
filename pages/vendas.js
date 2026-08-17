@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../lib/theme'
+import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
 import { useRouter } from 'next/router'
 
 function useIsMobile(){ const [m,setM]=useState(false); useEffect(()=>{const c=()=>setM(window.innerWidth<768);c();window.addEventListener('resize',c);return()=>window.removeEventListener('resize',c)},[]);return m }
@@ -110,7 +111,7 @@ export default function Vendas() {
               </div>
               <div style={{display:'flex',gap:6,marginTop:8}}>
                 <button style={{flex:1,padding:'8px',borderRadius:8,border:'1px solid '+t.border,background:t.bgCard,color:t.text,fontSize:12,cursor:'pointer'}} onClick={()=>verDetalhe(v)}>Ver detalhes</button>
-                <button style={{padding:'8px 12px',borderRadius:8,border:'1px solid #FCEBEB',background:t.bgCard,color:'#A32D2D',fontSize:12,cursor:'pointer'}} onClick={()=>apagarVenda(v)}>🗑️</button>
+                <BotaoIco n="apagar" t={t} size={38} tom="perigo" titulo="Apagar venda" onClick={()=>apagarVenda(v)}/>
               </div>
             </div>
           ))}
@@ -129,7 +130,7 @@ export default function Vendas() {
                 <td style={{padding:'9px 12px',borderBottom:'1px solid '+t.borderSoft,color:t.text}}>{v.data?new Date(v.data+'T12:00').toLocaleDateString('pt-BR'):'—'}</td>
                 <td style={{padding:'9px 12px',borderBottom:'1px solid '+t.borderSoft}}><div style={{display:'flex',gap:5}}>
                   <button style={{padding:'4px 10px',borderRadius:6,border:'1px solid '+t.border,fontSize:11,cursor:'pointer',background:t.bgCard,color:t.text}} onClick={()=>verDetalhe(v)}>👁</button>
-                  <button style={{padding:'4px 10px',borderRadius:6,border:'1px solid #FCEBEB',fontSize:11,cursor:'pointer',background:t.bgCard,color:'#A32D2D'}} onClick={()=>apagarVenda(v)}>🗑️</button>
+                  <BotaoIco n="apagar" t={t} size={34} tom="perigo" titulo="Apagar venda" onClick={()=>apagarVenda(v)}/>
                 </div></td>
               </tr>
             ))}</tbody>
