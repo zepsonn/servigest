@@ -5,6 +5,7 @@ import { useTheme } from '../lib/theme'
 import { useRouter } from 'next/router'
 import { TextoFormatado, MARCADORES, aplicarMarca } from '../lib/texto'
 import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
+import { copiarOS } from '../lib/whatsapp'
 
 function useIsMobile(){ const [m,setM]=useState(false); useEffect(()=>{const c=()=>setM(window.innerWidth<768);c();window.addEventListener('resize',c);return()=>window.removeEventListener('resize',c)},[]);return m }
 
@@ -183,6 +184,7 @@ export default function OS() {
   const [editModal, setEditModal] = useState(null)
   const [tecnicos, setTecnicos] = useState([])
   const [servicosSalvos, setServicosSalvos] = useState([])
+  const [copiadoId, setCopiadoId] = useState(null)
   const [user, setUser] = useState(null)
   const [form, setForm] = useState(FORM0)
   const [editForm, setEditForm] = useState({})
@@ -245,29 +247,13 @@ export default function OS() {
   const PERIODO_LABEL={manha:'Manhã',tarde:'Tarde',noite:'Noite'}
 
   async function copiarParaWhatsapp(o){
-    const linhas=[
-      `*OS Nº ${o.numero}*`,
-      `Cliente: ${o.cliente_nome||'-'}`,
-      o.cliente_telefone?`Telefone: ${o.cliente_telefone}`:null,
-      `Endereço: ${o.cliente_endereco||'-'}${o.bairro?' - '+o.bairro:''}`,
-      `Data: ${fmtDataBR(o.data_entrada)}${o.periodo?' ('+(PERIODO_LABEL[o.periodo]||o.periodo)+')':''}`,
-      o.produto?`Produto: ${o.produto}`:null,
-      o.servico?(String(o.servico).split('\n').filter(Boolean).length>1
-        ? 'Serviços realizados:\n'+String(o.servico).split('\n').filter(Boolean).map(l=>'- '+l.trim()).join('\n')
-        : `Serviço: ${o.servico}`):null,
-      o.relato_cliente?`Relato do cliente: ${o.relato_cliente}`:null,
-      `Diagnóstico: ${o.descricao||'-'}`,
-    ].filter(Boolean)
-    const texto=linhas.join('\n')
-    try{
-      await navigator.clipboard.writeText(texto)
-      alert('OS copiada! Agora é só colar no WhatsApp.')
-    }catch(e){
-      // fallback pra navegadores sem permissao de clipboard
-      const ta=document.createElement('textarea')
-      ta.value=texto; document.body.appendChild(ta); ta.select()
-      document.execCommand('copy'); document.body.removeChild(ta)
-      alert('OS copiada! Agora é só colar no WhatsApp.')
+    // usa a funcao compartilhada (lib/whatsapp.js) — mesmo texto do Dashboard
+    const ok = await copiarOS(o)
+    if(ok){
+      setCopiadoId(o.id)
+      setTimeout(()=>setCopiadoId(null),1600)
+    }else{
+      alert('Nao consegui copiar. Tente de novo.')
     }
   }
 
@@ -388,7 +374,8 @@ export default function OS() {
                   )}
                   <BotaoIco n="editar"   t={t} titulo="Editar OS"          onClick={()=>{setEditForm({...o,tecnico_id:o.tecnico_id||''});setEditModal(o);setDetalhe(null)}}/>
                   <BotaoIco n="recibo"   t={t} titulo="Gerar recibo"       onClick={()=>router.push('/recibo?os='+o.id)}/>
-                  <BotaoIco n="whatsapp" t={t} titulo="Copiar p/ WhatsApp" tom="zap" onClick={()=>copiarParaWhatsapp(o)}/>
+                  <BotaoIco n={copiadoId===o.id?'confirmar':'whatsapp'} t={t} tom={copiadoId===o.id?'sucesso':'zap'}
+                    titulo={copiadoId===o.id?'Copiado!':'Copiar p/ WhatsApp'} onClick={()=>copiarParaWhatsapp(o)}/>
                   {isGestor&&<BotaoIco n="apagar" t={t} titulo="Apagar OS" tom="perigo" onClick={()=>apagar(o)}/>}
                 </div>
               </div>

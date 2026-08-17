@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
-import { useTheme } from '../lib/theme'
+import { useTheme, grad, GRADIENTES } from '../lib/theme'
 import { useRouter } from 'next/router'
+import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
+import { copiarOS } from '../lib/whatsapp'
 
 export default function Clientes() {
   const [clientes, setClientes] = useState([])
@@ -11,6 +13,7 @@ export default function Clientes() {
   const [osCliente, setOsCliente] = useState([])
   const [novaOsModal, setNovaOsModal] = useState(false)
   const [tecnicos, setTecnicos] = useState([])
+  const [copiadoId, setCopiadoId] = useState(null)
   const [form, setForm] = useState({produto:'',servico:'',descricao:'',valor:0,periodo:'',data_entrada:new Date().toISOString().split('T')[0],tecnico_id:'',observacoes:''})
   const { t } = useTheme()
   const router = useRouter()
@@ -106,20 +109,26 @@ export default function Clientes() {
           <div style={{fontSize:12,color:t.textSoft,marginBottom:12}}>{filtrados.length} cliente{filtrados.length!==1?'s':''} encontrado{filtrados.length!==1?'s':''}</div>
           <div style={{display:'flex',flexDirection:'column',gap:8}}>
             {filtrados.map((c,i)=>(
-              <div key={i} onClick={()=>abrirCliente(c)} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:16,boxShadow:t.shadow,padding:'14px 16px',cursor:'pointer',display:'flex',alignItems:'center',gap:12}}>
-                {/* avatar inicial */}
-                <div style={{width:40,height:40,borderRadius:'50%',background:t.accentSoft,color:t.accent,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:16,flexShrink:0}}>
+              <div key={i} onClick={()=>abrirCliente(c)} className="sg-card"
+                style={{background:t.bgCard,border:'1px solid '+t.borderSoft,borderRadius:16,boxShadow:t.shadow,padding:'13px 15px',cursor:'pointer',display:'flex',alignItems:'center',gap:13}}>
+                <div style={{width:44,height:44,borderRadius:14,background:grad('clientes'),color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',
+                             fontWeight:800,fontSize:17,flexShrink:0,boxShadow:'0 6px 14px -5px '+GRADIENTES.clientes[1]+'99'}}>
                   {c.nome.charAt(0).toUpperCase()}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:600,color:t.text,fontSize:14}}>{c.nome}</div>
-                  <div style={{fontSize:12,color:t.textSoft,marginTop:1}}>{c.telefone}{c.bairro?' · '+c.bairro:''}</div>
+                  <div style={{display:'flex',alignItems:'center',gap:7,flexWrap:'wrap'}}>
+                    <span style={{fontWeight:700,color:t.text,fontSize:14.5}}>{c.nome}</span>
+                    {c.total_os>=2&&<span style={{fontSize:9.5,fontWeight:800,letterSpacing:'.04em',color:'#fff',background:grad('clientes'),borderRadius:999,padding:'2px 8px'}}>FIXO</span>}
+                  </div>
+                  <div style={{fontSize:12,color:t.textSoft,marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                    {[c.telefone,c.bairro].filter(Boolean).join(' · ')||'—'}
+                  </div>
                 </div>
-                <div style={{textAlign:'right',flexShrink:0}}>
-                  <div style={{fontSize:13,fontWeight:600,color:c.total_os>=2?t.accent:t.textSoft}}>{c.total_os} OS</div>
-                  {c.total_os>=2&&<div style={{fontSize:10,color:t.accent,fontWeight:500}}>Cliente fixo</div>}
+                <div style={{textAlign:'right',flexShrink:0,marginRight:2}}>
+                  <div style={{fontSize:17,fontWeight:800,color:t.text,fontVariantNumeric:'tabular-nums',lineHeight:1}}>{c.total_os}</div>
+                  <div style={{fontSize:9.5,color:t.textSoft,textTransform:'uppercase',letterSpacing:'.05em',fontWeight:700,marginTop:2}}>{c.total_os>1?'serviços':'serviço'}</div>
                 </div>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={t.textSoft} strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={t.textSoft} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><polyline points="9 18 15 12 9 6"/></svg>
               </div>
             ))}
             {filtrados.length===0&&<div style={{padding:32,textAlign:'center',color:t.textSoft,fontSize:13}}>Nenhum cliente encontrado.</div>}
@@ -176,7 +185,12 @@ export default function Clientes() {
                 </div>
                 {o.descricao&&<div style={{fontSize:12,color:t.textSoft,marginTop:6,paddingTop:6,borderTop:'1px solid '+t.borderSoft}}>Diagnóstico: {o.descricao}</div>}
                 {o.observacoes&&<div style={{fontSize:12,color:t.textSoft,marginTop:4}}>Obs: {o.observacoes}</div>}
-                <button onClick={()=>router.push('/recibo?os='+o.id)} style={{marginTop:10,padding:'6px 14px',borderRadius:8,border:'1px solid '+t.border,background:t.bgCard,color:t.text,fontSize:12,cursor:'pointer'}}>🧾 Ver recibo</button>
+                <div style={{display:'flex',gap:8,marginTop:11,alignItems:'center'}}>
+                  <BotaoPill n="recibo" t={t} onClick={()=>router.push('/recibo?os='+o.id)}>Ver recibo</BotaoPill>
+                  <BotaoIco n={copiadoId===o.id?'confirmar':'whatsapp'} t={t} tom={copiadoId===o.id?'sucesso':'zap'}
+                    titulo={copiadoId===o.id?'Copiado!':'Copiar p/ WhatsApp'}
+                    onClick={async()=>{ if(await copiarOS({...o,cliente_nome:selecionado.nome,cliente_telefone:selecionado.telefone,cliente_endereco:selecionado.endereco,bairro:selecionado.bairro})){setCopiadoId(o.id);setTimeout(()=>setCopiadoId(null),1600)} }}/>
+                </div>
               </div>
             ))}
           </div>

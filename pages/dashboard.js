@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
 import { useTheme, GRADIENTES, grad } from '../lib/theme'
+import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
+import { copiarOS } from '../lib/whatsapp'
 import Link from 'next/link'
 
 function useIsMobile(){ const [m,setM]=useState(false); useEffect(()=>{const c=()=>setM(window.innerWidth<768);c();window.addEventListener('resize',c);return()=>window.removeEventListener('resize',c)},[]);return m }
@@ -338,80 +340,66 @@ export default function Dashboard(){
 
   function AgendaCard({os, destaque, atrasado}) {
     const [exp, setExp] = useState(false)
-    const data = os.data_entrada ? new Date(os.data_entrada+'T12:00') : null
-    const diasRestantes = data ? Math.round((data - new Date().setHours(0,0,0,0)) / 86400000) : null
-    const corDestaque = atrasado ? '#A32D2D' : t.accent
-    const bgDestaque = atrasado ? (t.dark?'#2a1a1a':'#fdf0f0') : (t.dark?'#1a2a1a':'#f0faf0')
-    // bairro curto — tira o prefixo da cidade (ex: "Sao Jose dos Pinhais - Afonso Pena" → "Afonso Pena")
-    const bairroShort = os.bairro ? os.bairro.split(' - ').pop() : ''
+    const [copiado, setCopiado] = useState(false)
+    const data = os.data_entrada ? new Date(os.data_entrada+"T12:00") : null
+    const corBarra = atrasado ? "#C24141" : (destaque ? t.accent : t.borderSoft)
+    const bairroShort = os.bairro ? os.bairro.split(" - ").pop() : ""
+    const contexto = [os.produto||os.servico, bairroShort, os.periodo?PERIODOS[os.periodo]:null, os.usuarios?.nome].filter(Boolean).join(" · ")
+
+    async function copiar(e){
+      e.stopPropagation()
+      const ok = await copiarOS(os)
+      if(ok){ setCopiado(true); setTimeout(()=>setCopiado(false),1600) }
+    }
+    function confirmar(e){
+      e.stopPropagation()
+      setPainelOS(os); setPainelValor(os.valor||0); setPainelPecas(os.valor_pecas||0)
+      setPainelTaxa(0); setEhTaxa(false); setPainelObs(os.observacoes||"")
+    }
+
     const Detalhes = () => (
-      <div style={{margin:'0 12px 10px',padding:'10px 12px',borderRadius:8,background:t.bgCard,fontSize:12,color:t.textSoft,display:'flex',flexDirection:'column',gap:5}}>
-        {os.cliente_telefone&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Telefone:</span>{os.cliente_telefone}</div>}
-        {os.cliente_endereco&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Endereço:</span>{os.cliente_endereco}</div>}
-        {os.bairro&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Bairro:</span>{os.bairro}</div>}
-        {os.relato_cliente&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Relato:</span>{os.relato_cliente}</div>}
-        {os.descricao&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Diagnóstico:</span>{os.descricao}</div>}
-        {os.observacoes&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Obs:</span>{os.observacoes}</div>}
-        {os.valor>0&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Valor:</span><strong style={{color:t.accent}}>{fmt(os.valor)}</strong></div>}
+      <div style={{margin:"0 14px 12px 62px",padding:"11px 13px",borderRadius:12,background:t.bgCard,border:"1px solid "+t.borderSoft,fontSize:12.5,color:t.textSoft,display:"flex",flexDirection:"column",gap:6}}>
+        {os.cliente_telefone&&<div><span style={{color:t.textSoft,fontSize:10.5,textTransform:"uppercase",letterSpacing:".05em",fontWeight:700,display:"block"}}>Telefone</span><span style={{color:t.text}}>{os.cliente_telefone}</span></div>}
+        {os.cliente_endereco&&<div><span style={{color:t.textSoft,fontSize:10.5,textTransform:"uppercase",letterSpacing:".05em",fontWeight:700,display:"block"}}>Endereço</span><span style={{color:t.text}}>{os.cliente_endereco}{os.bairro?" · "+os.bairro:""}</span></div>}
+        {os.relato_cliente&&<div><span style={{color:t.textSoft,fontSize:10.5,textTransform:"uppercase",letterSpacing:".05em",fontWeight:700,display:"block"}}>Relato do cliente</span><span style={{color:t.text}}>{os.relato_cliente}</span></div>}
+        {os.descricao&&<div><span style={{color:t.textSoft,fontSize:10.5,textTransform:"uppercase",letterSpacing:".05em",fontWeight:700,display:"block"}}>Diagnóstico</span><span style={{color:t.text}}>{os.descricao}</span></div>}
+        {os.valor>0&&<div><span style={{color:t.textSoft,fontSize:10.5,textTransform:"uppercase",letterSpacing:".05em",fontWeight:700,display:"block"}}>Valor</span><strong style={{color:t.text,fontSize:15,fontVariantNumeric:"tabular-nums"}}>{fmt(os.valor)}</strong></div>}
       </div>
     )
 
-    if(isMobile) return (
-      <div style={{borderRadius:10,marginBottom:8,background:destaque?bgDestaque:t.bgSidebar,border:destaque?'1px solid '+corDestaque:'1px solid '+t.borderSoft}}>
-        <div onClick={()=>setExp(!exp)} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 12px',cursor:'pointer'}}>
-          {atrasado&&<span style={{fontSize:14,flexShrink:0}}>⚠</span>}
-          <div style={{textAlign:'center',flexShrink:0,width:32}}>
-            <div style={{fontSize:16,fontWeight:700,color:destaque?corDestaque:t.textSoft,lineHeight:1}}>{data?data.getDate():'—'}</div>
-            <div style={{fontSize:9,color:t.textSoft,textTransform:'uppercase'}}>{data?data.toLocaleDateString('pt-BR',{month:'short'}):''}</div>
-          </div>
-          <div style={{width:2,height:30,background:destaque?corDestaque:t.borderSoft,borderRadius:99,flexShrink:0}}/>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.cliente_nome||'—'}</div>
-            <div style={{fontSize:11,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-              {[os.produto||os.servico, bairroShort, os.periodo?PERIODOS[os.periodo]:null].filter(Boolean).join(' · ')}
+    return (
+      <div className="sg-card" style={{borderRadius:16,marginBottom:9,background:t.bgCard,border:"1px solid "+(atrasado?"#f0cfcf":t.borderSoft),boxShadow:t.shadow,overflow:"hidden"}}>
+        <div onClick={()=>setExp(!exp)} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",cursor:"pointer"}}>
+          {/* data */}
+          <div style={{display:"flex",alignItems:"center",gap:11,flexShrink:0}}>
+            <div style={{width:3,height:38,borderRadius:99,background:corBarra}}/>
+            <div style={{textAlign:"center",width:34}}>
+              <div style={{fontSize:18,fontWeight:800,lineHeight:1,color:atrasado?"#C24141":t.text,fontVariantNumeric:"tabular-nums"}}>{data?data.getDate():"—"}</div>
+              <div style={{fontSize:9,color:t.textSoft,textTransform:"uppercase",letterSpacing:".05em",marginTop:2}}>{data?data.toLocaleDateString("pt-BR",{month:"short"}).replace(".",""):""}</div>
             </div>
           </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={t.textSoft} strokeWidth="2" style={{transform:exp?'rotate(180deg)':'none',transition:'transform .2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        {exp&&<Detalhes/>}
-        <div style={{padding:'0 12px 10px'}}>
-          <button onClick={()=>{setPainelOS(os);setPainelValor(os.valor||0);setPainelObs(os.observacoes||'')}} style={{width:'100%',padding:'8px 14px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:12,cursor:'pointer',fontWeight:600}}>
-            ✓ Confirmar
-          </button>
-        </div>
-      </div>
-    )
-
-    // DESKTOP
-    const diasAtras = atrasado && data ? Math.abs(diasRestantes) : null
-    return (
-      <div style={{borderRadius:10,marginBottom:8,background:destaque?bgDestaque:t.bgSidebar,border:destaque?'1px solid '+corDestaque:'1px solid '+t.borderSoft,overflow:'hidden'}}>
-        <div onClick={()=>setExp(!exp)} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',cursor:'pointer'}}>
-          <div style={{textAlign:'center',flexShrink:0,width:44}}>
-            <div style={{fontSize:destaque?20:16,fontWeight:700,color:destaque?corDestaque:t.textSoft,lineHeight:1}}>{data?data.getDate():'—'}</div>
-            <div style={{fontSize:10,color:t.textSoft,textTransform:'uppercase'}}>{data?data.toLocaleDateString('pt-BR',{month:'short'}):''}</div>
-          </div>
-          <div style={{width:2,height:36,background:destaque?corDestaque:t.borderSoft,borderRadius:99,flexShrink:0}}/>
+          {/* cliente + contexto */}
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.cliente_nome||'—'}</div>
-            <div style={{fontSize:11,color:t.textSoft,marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{os.produto||os.servico||'—'}{os.bairro?' · '+os.bairro:''}</div>
+            <div style={{fontWeight:700,color:t.text,fontSize:14.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{os.cliente_nome||"—"}</div>
+            <div style={{fontSize:11.5,color:t.textSoft,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{contexto||"—"}</div>
           </div>
-          <div style={{textAlign:'right',flexShrink:0}}>
-            {os.periodo&&<div style={{fontSize:11,fontWeight:600,color:destaque?corDestaque:t.textSoft,marginBottom:2}}>{PERIODOS[os.periodo]||os.periodo}</div>}
-            <div style={{fontSize:11,color:t.textSoft}}>{os.usuarios?.nome||'Sem técnico'}</div>
+          {/* acoes */}
+          <div style={{display:"flex",alignItems:"center",gap:7,flexShrink:0}}>
+            {atrasado&&<span style={{background:"#fdeaea",color:"#C24141",borderRadius:999,padding:"3px 9px",fontSize:10,fontWeight:800,letterSpacing:".04em"}}>ATRASADO</span>}
+            <BotaoIco n={copiado?"confirmar":"whatsapp"} t={t} size={38} tom={copiado?"sucesso":"zap"}
+              titulo={copiado?"Copiado!":"Copiar p/ WhatsApp"} onClick={copiar}/>
+            <BotaoPill n="confirmar" t={t} onClick={confirmar}
+              style={{height:38,padding:isMobile?"0 13px":"0 15px",background:t.accent,color:"#fff",border:"1px solid "+t.accent,boxShadow:"0 6px 14px -5px "+t.accent+"99"}}>
+              {isMobile?"":"Confirmar"}
+            </BotaoPill>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={t.textSoft} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{transform:exp?"rotate(180deg)":"none",transition:"transform .22s",flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
           </div>
-          {atrasado&&diasAtras>0&&<div style={{background:'#FCEBEB',border:'1px solid #f0c0c0',borderRadius:6,padding:'2px 8px',fontSize:11,color:'#A32D2D',flexShrink:0,fontWeight:600}}>há {diasAtras}d</div>}
-          {!atrasado&&diasRestantes!==null&&diasRestantes>0&&<div style={{background:t.bgCard,border:'1px solid '+t.borderSoft,borderRadius:6,padding:'2px 8px',fontSize:11,color:t.textSoft,flexShrink:0}}>em {diasRestantes}d</div>}
-          {atrasado?<div style={{background:'#A32D2D',color:'#fff',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:600,flexShrink:0}}>ATRASADO</div>:(destaque&&<div style={{background:t.accent,color:'#fff',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:600,flexShrink:0}}>HOJE</div>)}
-          <button onClick={e=>{e.stopPropagation();setPainelOS(os);setPainelValor(os.valor||0);setPainelObs(os.observacoes||'')}} style={{padding:'5px 12px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:11,cursor:'pointer',fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>
-            ✓ Confirmar
-          </button>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={t.textSoft} strokeWidth="2" style={{transform:exp?'rotate(180deg)':'none',transition:'transform .2s',flexShrink:0}}><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         {exp&&<Detalhes/>}
       </div>
     )
   }
+
 
    function dgDrop(e,i){
     e.preventDefault()
