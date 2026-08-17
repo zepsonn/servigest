@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
-import { useTheme } from '../lib/theme'
+import { useTheme, GRADIENTES, grad } from '../lib/theme'
 import Link from 'next/link'
 
 function useIsMobile(){ const [m,setM]=useState(false); useEffect(()=>{const c=()=>setM(window.innerWidth<768);c();window.addEventListener('resize',c);return()=>window.removeEventListener('resize',c)},[]);return m }
@@ -18,6 +18,7 @@ const CARDS_DEFAULT = [
   {id:'andamento',label:'Em andamento',tamanho:'pequeno'},
   {id:'concluidas',label:'Concluídas',tamanho:'pequeno'},
   {id:'hoje',label:'Agenda hoje',tamanho:'pequeno'},
+  {id:'calendario',label:'Calendário de serviços',tamanho:'largo'},
   {id:'localizacao',label:'Localização dos técnicos',tamanho:'medio'},
   {id:'agenda',label:'Agenda de serviços',tamanho:'largo'},
   {id:'por_tecnico',label:'Serviços por técnico hoje',tamanho:'largo'},
@@ -48,6 +49,11 @@ export default function Dashboard(){
   const [osRealizadas,setOsRealizadas]=useState([])
   const [agendaFiltroData,setAgendaFiltroData]=useState('')
   const [osFiltradas,setOsFiltradas]=useState([])
+  // calendario
+  const [calMes,setCalMes]=useState(()=>new Date().toISOString().slice(0,7))
+  const [calDias,setCalDias]=useState({})
+  const [calSel,setCalSel]=useState(()=>new Date().toISOString().split('T')[0])
+  const [calCarregando,setCalCarregando]=useState(false)
   const [tecFiltroId,setTecFiltroId]=useState('')
   const [tecFiltroData,setTecFiltroData]=useState(new Date().toISOString().split('T')[0])
   const [tecOs,setTecOs]=useState([])
@@ -72,6 +78,8 @@ export default function Dashboard(){
         const map={}; data.forEach(t=>{map[t.id]=t.comissao_percentual||0}); setComissoes(map)
       }
     })
+    // calendario do mes atual
+    carregarMes(new Date().toISOString().slice(0,7))
     // ultima localizacao de cada tecnico — so o gestor carrega isso
     if(u.role==='gestor'){
       supabase.from('localizacoes_tecnico').select('tecnico_id,lat,lng,criado_em')
@@ -252,6 +260,22 @@ export default function Dashboard(){
     loadData(user)
   }
 
+  // ---------- CALENDARIO: carrega o mes inteiro de uma vez ----------
+  async function carregarMes(ym){
+    setCalMes(ym)
+    setCalCarregando(true)
+    const [a,m] = ym.split('-').map(Number)
+    const ini = ym + '-01'
+    const fim = ym + '-' + String(new Date(a, m, 0).getDate()).padStart(2,'0')
+    const {data} = await supabase.from('ordens_servico')
+      .select('id,numero,cliente_nome,cliente_telefone,cliente_endereco,bairro,produto,servico,descricao,relato_cliente,periodo,status,data_entrada,valor,tecnico_id,usuarios(nome)')
+      .gte('data_entrada', ini).lte('data_entrada', fim).order('cliente_nome')
+    const porDia = {}
+    ;(data||[]).forEach(o => { if(o.data_entrada) (porDia[o.data_entrada] = porDia[o.data_entrada] || []).push(o) })
+    setCalDias(porDia)
+    setCalCarregando(false)
+  }
+
   async function buscarPorData(data){
     if(!data){setOsFiltradas([]);setAgendaFiltroData('');return}
     setBuscandoFiltro(true)
@@ -408,6 +432,103 @@ export default function Dashboard(){
     const isOver=edit&&overIdx===idx&&dragIdx!==idx
     const baseStyle={background:t.bgCard,border:'1px solid '+(isOver?t.accent:t.border),borderRadius:16,boxShadow:t.shadow,overflow:'hidden',gridColumn:colSpan(card.tamanho),opacity:isDragging?0.4:1,position:'relative',cursor:edit?'grab':'default'}
     const dragProps=edit?{draggable:true,onDragStart:()=>dgStart(idx),onDragOver:e=>dgOver(e,idx),onDrop:e=>dgDrop(e,idx),onDragEnd:dgEnd}:{}
+
+    // ---------- CALENDARIO DE SERVICOS ----------
+    if(card.id==='calendario'){
+      const [ano,mes] = calMes.split('-').map(Number)
+      const primeiro = new Date(ano, mes-1, 1)
+      const diasNoMes = new Date(ano, mes, 0).getDate()
+      const vazias = primeiro.getDay()                  // 0=domingo
+      const hojeISO = new Date().toISOString().split('T')[0]
+      const nomeMes = primeiro.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})
+      const celulas = []
+      for(let i=0;i<vazias;i++) celulas.push(null)
+      for(let d=1;d<=diasNoMes;d++) celulas.push(calMes+'-'+String(d).padStart(2,'0'))
+      const doDia = calDias[calSel]||[]
+      function irMes(delta){
+        const dt = new Date(ano, mes-1+delta, 1)
+        carregarMes(dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'))
+      }
+      const btnMes = {width:32,height:32,borderRadius:10,border:'1px solid '+t.border,background:t.bgCard,color:t.text,cursor:'pointer',fontSize:15,lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}
+      return (
+        <div key={card.id} {...dragProps} style={baseStyle}>
+          {edit&&<EditOverlay card={card} t={t} onRemove={()=>remover(card.id)} onTam={tam=>setTam(card.id,tam)}/>}
+          <div style={{padding:'14px 18px',borderBottom:'1px solid '+t.borderSoft,display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
+            <span style={{fontSize:15,fontWeight:700,color:t.text,textTransform:'capitalize'}}>{nomeMes}</span>
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              <button className="sg-btn" style={btnMes} onClick={()=>irMes(-1)}>‹</button>
+              <button className="sg-btn" style={{...btnMes,width:'auto',padding:'0 12px',fontSize:12,fontWeight:600}}
+                onClick={()=>{const h=new Date();carregarMes(h.toISOString().slice(0,7));setCalSel(h.toISOString().split('T')[0])}}>Hoje</button>
+              <button className="sg-btn" style={btnMes} onClick={()=>irMes(1)}>›</button>
+            </div>
+          </div>
+
+          <div style={{padding:'12px 14px'}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:5,marginBottom:6}}>
+              {['DOM','SEG','TER','QUA','QUI','SEX','SAB'].map(d=>(
+                <div key={d} style={{textAlign:'center',fontSize:9.5,fontWeight:700,letterSpacing:'.06em',color:t.textSoft,padding:'4px 0'}}>{d}</div>
+              ))}
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:5}}>
+              {celulas.map((iso,i)=>{
+                if(!iso) return <div key={'v'+i}/>
+                const lista = calDias[iso]||[]
+                const qtd = lista.length
+                const concl = lista.filter(o=>o.status==='concluida').length
+                const sel = calSel===iso
+                const hoje = hojeISO===iso
+                const dia = Number(iso.slice(-2))
+                let fundo = t.dark?t.bgHover:t.bg, cor = t.textSoft, borda = '1px solid transparent'
+                if(qtd) { cor = t.text }
+                if(hoje) borda = '1px solid '+t.accent
+                if(sel)  { fundo = grad('dashboard'); cor = '#fff'; borda = '1px solid transparent' }
+                return (
+                  <button key={iso} className="sg-btn" onClick={()=>setCalSel(iso)}
+                    style={{position:'relative',height:isMobile?46:54,borderRadius:12,border:borda,background:fundo,color:cor,
+                            cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',
+                            fontSize:isMobile?13:14,fontWeight:sel||hoje?700:500,padding:0,
+                            boxShadow:sel?'0 8px 18px -6px '+GRADIENTES.dashboard[1]+'99':'none'}}>
+                    {dia}
+                    {qtd>0&&(
+                      <span style={{position:'absolute',bottom:4,right:4,minWidth:15,height:15,padding:'0 3px',borderRadius:999,
+                                    fontSize:9.5,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',
+                                    background:sel?'rgba(255,255,255,.28)':(concl===qtd?'#3B6D11':t.accent),color:'#fff'}}>{qtd}</span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+            {calCarregando&&<div style={{fontSize:12,color:t.textSoft,textAlign:'center',padding:'10px 0'}}>Carregando...</div>}
+          </div>
+
+          {/* servicos do dia escolhido */}
+          <div style={{borderTop:'1px solid '+t.borderSoft,padding:'12px 16px',background:t.bgSidebar}}>
+            <div style={{fontSize:10.5,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',color:t.textSoft,marginBottom:10}}>
+              {new Date(calSel+'T12:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})}
+              {doDia.length>0&&' — '+doDia.length+' serviço'+(doDia.length>1?'s':'')}
+            </div>
+            {doDia.length===0&&<div style={{fontSize:13,color:t.textSoft,padding:'6px 0 10px'}}>Nenhum serviço nesta data.</div>}
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {doDia.map(o=>(
+                <div key={o.id} className="sg-card" style={{background:t.bgCard,border:'1px solid '+(o.status==='concluida'?'#3B6D11':t.borderSoft),borderRadius:12,padding:'10px 12px',display:'flex',alignItems:'center',gap:10}}>
+                  <div style={{width:4,alignSelf:'stretch',borderRadius:99,background:o.status==='concluida'?'#3B6D11':t.accent,flexShrink:0}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:600,color:t.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
+                    <div style={{fontSize:11.5,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                      {[o.produto||o.servico, o.bairro, o.usuarios?.nome].filter(Boolean).join(' · ')}
+                    </div>
+                  </div>
+                  <div style={{textAlign:'right',flexShrink:0}}>
+                    {o.periodo&&<div style={{fontSize:10.5,fontWeight:700,color:t.accent}}>{PERIODOS[o.periodo]||o.periodo}</div>}
+                    {o.valor>0&&<div style={{fontSize:12,fontWeight:700,color:t.text,fontVariantNumeric:'tabular-nums'}}>{fmt(o.valor)}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+    }
 
     // AGENDA
     if(card.id==='agenda'){
