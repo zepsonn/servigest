@@ -6,6 +6,7 @@ import { useRouter } from 'next/router'
 import { TextoFormatado, MARCADORES, aplicarMarca } from '../lib/texto'
 import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
 import { copiarOS } from '../lib/whatsapp'
+import PainelConfirmar from '../components/PainelConfirmar'
 
 function useIsMobile(){ const [m,setM]=useState(false); useEffect(()=>{const c=()=>setM(window.innerWidth<768);c();window.addEventListener('resize',c);return()=>window.removeEventListener('resize',c)},[]);return m }
 
@@ -185,6 +186,7 @@ export default function OS() {
   const [tecnicos, setTecnicos] = useState([])
   const [servicosSalvos, setServicosSalvos] = useState([])
   const [copiadoId, setCopiadoId] = useState(null)
+  const [confirmando, setConfirmando] = useState(null)
   const [user, setUser] = useState(null)
   const [form, setForm] = useState(FORM0)
   const [editForm, setEditForm] = useState({})
@@ -257,9 +259,8 @@ export default function OS() {
     }
   }
 
-  async function concluir(id){
-    await supabase.from('ordens_servico').update({status:'concluida',data_conclusao:new Date().toISOString().split('T')[0]}).eq('id',id); loadOS()
-  }
+  // abre o painel de valores em vez de concluir direto (mesma tela do Dashboard)
+  function concluir(o){ setConfirmando(o) }
 
   const filtradas = lista.filter(o=>
     (o.cliente_nome||'').toLowerCase().includes(busca.toLowerCase())||
@@ -276,6 +277,7 @@ export default function OS() {
 
   return (
     <Layout title="Ordens de Serviço">
+      <PainelConfirmar os={confirmando} t={t} onFechar={()=>setConfirmando(null)} onSalvo={()=>{setConfirmando(null);loadOS()}}/>
       <div style={{display:'flex',gap:8,marginBottom:14}}>
         <input style={{flex:1,padding:'9px 14px',borderRadius:8,border:'1px solid '+t.border,background:t.bgInput,fontSize:13,fontFamily:'inherit',color:t.text}} placeholder="Buscar por nome, bairro, produto..." value={busca} onChange={e=>setBusca(e.target.value)}/>
         <button style={{padding:'9px 16px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:13,cursor:'pointer',fontWeight:500,whiteSpace:'nowrap'}} onClick={()=>setModal(true)}>+ Nova OS</button>
@@ -369,7 +371,7 @@ export default function OS() {
                 })()}
                 <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
                   {o.status!=='concluida'&&(
-                    <BotaoPill n="confirmar" t={t} onClick={()=>concluir(o.id)}
+                    <BotaoPill n="confirmar" t={t} onClick={()=>concluir(o)}
                       style={{background:t.accent,color:'#fff',border:'1px solid '+t.accent,boxShadow:'0 6px 14px -5px '+t.accent+'99'}}>Concluir</BotaoPill>
                   )}
                   <BotaoIco n="editar"   t={t} titulo="Editar OS"          onClick={()=>{setEditForm({...o,tecnico_id:o.tecnico_id||''});setEditModal(o);setDetalhe(null)}}/>

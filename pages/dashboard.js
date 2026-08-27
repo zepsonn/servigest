@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useTheme, GRADIENTES, grad } from '../lib/theme'
 import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
 import { copiarOS } from '../lib/whatsapp'
+import PainelConfirmar from '../components/PainelConfirmar'
 import Link from 'next/link'
 
 function useIsMobile(){ const [m,setM]=useState(false); useEffect(()=>{const c=()=>setM(window.innerWidth<768);c();window.addEventListener('resize',c);return()=>window.removeEventListener('resize',c)},[]);return m }
@@ -194,73 +195,10 @@ export default function Dashboard(){
   }
 
   const [painelOS, setPainelOS] = useState(null)
-  const [painelValor, setPainelValor] = useState(0)
-  const [painelPecas, setPainelPecas] = useState(0)
-  const [painelTaxa, setPainelTaxa] = useState(0)
-  const [ehTaxa, setEhTaxa] = useState(false)
-  const [painelObs, setPainelObs] = useState('')
-  const [salvandoOS, setSalvandoOS] = useState(false)
   const [tecnicos, setTecnicos] = useState([])
   const [locais, setLocais] = useState({})
   const [comissoes, setComissoes] = useState({})
 
-  // verifica se é a 1a taxa do dia para esse tecnico (consultando OS ja concluidas com eh_taxa=true na mesma data)
-  async function ehPrimeiraTaxaDoDia(tecnicoId, data){
-    if(!tecnicoId || !data) return true
-    const { count } = await supabase.from('ordens_servico')
-      .select('id', { count: 'exact', head: true })
-      .eq('tecnico_id', tecnicoId).eq('eh_taxa', true).eq('status','concluida')
-      .eq('data_conclusao', data)
-    return !count || count === 0
-  }
-
-  async function confirmarOS() {
-    if(!painelOS) return
-    setSalvandoOS(true)
-    const hoje = new Date().toISOString().split('T')[0]
-    const tecnicoId = painelOS.tecnico_id
-    const pctTecnico = painelOS.usuarios?.comissao_percentual || 0
-    const isClaudio = pctTecnico === 0 // Claudio fica com 0% configurado = 100% empresa
-
-    let valorFinal, valorMaoObra, valorPecasFinal, ehTaxaFinal
-
-    if (ehTaxa) {
-      // MODO TAXA — substitui o valor
-      valorFinal = Number(painelTaxa) || 0
-      valorPecasFinal = 0
-      ehTaxaFinal = true
-      // mao_obra usado so para guardar quanto foi pro tecnico (informativo)
-      if (isClaudio) {
-        valorMaoObra = 0 // tudo fica na empresa, nao ha split
-      } else {
-        const primeira = await ehPrimeiraTaxaDoDia(tecnicoId, hoje)
-        valorMaoObra = primeira ? 0 : valorFinal // se for a 1a do dia, tecnico nao leva nada da taxa; senao guarda o valor total da taxa pra calcular 50/50 depois
-      }
-    } else {
-      // MODO NORMAL — desconta pecas, divide mao de obra
-      const total = Number(painelValor) || 0
-      const pecas = Number(painelPecas) || 0
-      valorFinal = total
-      valorPecasFinal = pecas
-      ehTaxaFinal = false
-      valorMaoObra = Math.max(total - pecas, 0)
-    }
-
-    await supabase.from('ordens_servico').update({
-      status: 'concluida',
-      data_conclusao: hoje,
-      valor: valorFinal,
-      valor_pecas: valorPecasFinal,
-      valor_taxa: ehTaxaFinal ? valorFinal : 0,
-      eh_taxa: ehTaxaFinal,
-      valor_mao_obra: valorMaoObra,
-      observacoes: painelObs || painelOS.observacoes,
-    }).eq('id', painelOS.id)
-
-    setSalvandoOS(false)
-    setPainelOS(null); setPainelValor(0); setPainelPecas(0); setPainelTaxa(0); setEhTaxa(false); setPainelObs('')
-    loadData(user)
-  }
 
   // ---------- CALENDARIO: carrega o mes inteiro de uma vez ----------
   async function carregarMes(ym){
@@ -353,8 +291,7 @@ export default function Dashboard(){
     }
     function confirmar(e){
       e.stopPropagation()
-      setPainelOS(os); setPainelValor(os.valor||0); setPainelPecas(os.valor_pecas||0)
-      setPainelTaxa(0); setEhTaxa(false); setPainelObs(os.observacoes||"")
+      setPainelOS(os)
     }
 
     const Detalhes = () => (
@@ -558,7 +495,7 @@ export default function Dashboard(){
                           </div>
                           {o.valor>0&&<div style={{fontSize:13,fontWeight:600,color:t.accent,flexShrink:0}}>{fmt(o.valor)}</div>}
                           <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:500,background:o.status==='concluida'?'#EAF3DE':'#FAEEDA',color:o.status==='concluida'?'#3B6D11':'#854F0B',flexShrink:0}}>{o.status==='concluida'?'Concluída':'Em andamento'}</span>
-                          <button onClick={()=>{setPainelOS({...o,tecnico_id:o.tecnico_id});setPainelValor(o.valor||0);setPainelPecas(o.valor_pecas||0);setPainelTaxa(o.valor_taxa||0);setEhTaxa(!!o.eh_taxa);setPainelObs(o.observacoes||'')}} style={{padding:'5px 10px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:11,cursor:'pointer',fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>
+                          <button onClick={()=>{setPainelOS(o)}} style={{padding:'5px 10px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:11,cursor:'pointer',fontWeight:600,flexShrink:0,whiteSpace:'nowrap'}}>
                             ✓ {o.status==='concluida'?'Editar':'Confirmar'}
                           </button>
                         </div>
@@ -809,80 +746,8 @@ export default function Dashboard(){
 
   return (
     <Layout title={isGestor?'Dashboard':'Meus Serviços'}>
-      {/* MINI PAINEL CONFIRMAR SERVIÇO */}
-      {painelOS&&(
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.55)',zIndex:200,display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
-          <div style={{background:t.bgCard,borderRadius:'16px 16px 0 0',padding:20,width:'100%',maxWidth:500,border:'1px solid '+t.border,maxHeight:'88vh',overflow:'auto'}}>
-            <div style={{fontSize:15,fontWeight:600,color:t.text,marginBottom:4}}>Confirmar serviço</div>
-            <div style={{fontSize:13,color:t.textSoft,marginBottom:14}}>{painelOS.cliente_nome} · {painelOS.produto||painelOS.servico||'—'}</div>
-
-            {/* TOGGLE NORMAL / TAXA */}
-            <div style={{display:'flex',gap:6,marginBottom:16,background:t.bgSidebar,padding:4,borderRadius:10}}>
-              <button onClick={()=>setEhTaxa(false)} style={{flex:1,padding:'10px',borderRadius:8,border:'none',background:!ehTaxa?t.accent:'transparent',color:!ehTaxa?'#fff':t.textSoft,fontSize:13,fontWeight:600,cursor:'pointer'}}>
-                ✓ Serviço aprovado
-              </button>
-              <button onClick={()=>setEhTaxa(true)} style={{flex:1,padding:'10px',borderRadius:8,border:'none',background:ehTaxa?'#854F0B':'transparent',color:ehTaxa?'#fff':t.textSoft,fontSize:13,fontWeight:600,cursor:'pointer'}}>
-                Só taxa de visita
-              </button>
-            </div>
-
-            {!ehTaxa ? (
-              <>
-                <div style={{marginBottom:12}}>
-                  <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>Valor total cobrado (R$)</label>
-                  <input type="number" style={{width:'100%',padding:'12px',borderRadius:8,border:'1px solid '+t.border,fontSize:18,fontFamily:'inherit',background:t.bgInput,color:t.text,fontWeight:600}} value={painelValor} onChange={e=>setPainelValor(e.target.value)} placeholder="0"/>
-                </div>
-                <div style={{marginBottom:12}}>
-                  <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>Valor de peças usadas (R$)</label>
-                  <input type="number" style={{width:'100%',padding:'12px',borderRadius:8,border:'1px solid '+t.border,fontSize:18,fontFamily:'inherit',background:t.bgInput,color:t.text,fontWeight:600}} value={painelPecas} onChange={e=>setPainelPecas(e.target.value)} placeholder="0"/>
-                </div>
-                {(() => {
-                  const total = Number(painelValor)||0
-                  const pecas = Number(painelPecas)||0
-                  const maoObra = Math.max(total-pecas,0)
-                  const pct = painelOS.usuarios?.comissao_percentual||0
-                  return (
-                    <div style={{padding:'10px 12px',borderRadius:8,background:t.bgSidebar,fontSize:12,marginBottom:16}}>
-                      <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}><span style={{color:t.textSoft}}>Mão de obra (total − peças)</span><strong style={{color:t.text}}>R$ {maoObra.toFixed(2)}</strong></div>
-                      {pct>0?(
-                        <>
-                          <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:t.textSoft}}>Para {painelOS.usuarios?.nome} ({pct}%)</span><strong style={{color:t.accent}}>R$ {(maoObra*pct/100).toFixed(2)}</strong></div>
-                          <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:t.textSoft}}>Para empresa</span><strong style={{color:t.text}}>R$ {(maoObra*(1-pct/100)).toFixed(2)}</strong></div>
-                        </>
-                      ):(
-                        <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:t.textSoft}}>Para empresa (100%)</span><strong style={{color:t.text}}>R$ {maoObra.toFixed(2)}</strong></div>
-                      )}
-                    </div>
-                  )
-                })()}
-              </>
-            ) : (
-              <>
-                <div style={{marginBottom:12}}>
-                  <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>Valor da taxa (R$)</label>
-                  <input type="number" style={{width:'100%',padding:'12px',borderRadius:8,border:'1px solid #854F0B',fontSize:18,fontFamily:'inherit',background:t.bgInput,color:t.text,fontWeight:600}} value={painelTaxa} onChange={e=>setPainelTaxa(e.target.value)} placeholder="40"/>
-                </div>
-                <div style={{padding:'10px 12px',borderRadius:8,background:'#FAEEDA',fontSize:12,color:'#854F0B',marginBottom:16}}>
-                  {(painelOS.usuarios?.comissao_percentual||0)===0
-                    ? 'Esta taxa fica 100% para a empresa.'
-                    : 'Se for a 1ª taxa do dia desse técnico, fica 100% empresa. Da 2ª em diante, divide 50/50 com o técnico.'}
-                </div>
-              </>
-            )}
-
-            <div style={{marginBottom:16}}>
-              <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>Observações (não aparece no recibo)</label>
-              <textarea style={{width:'100%',padding:'10px',borderRadius:8,border:'1px solid '+t.border,fontSize:14,fontFamily:'inherit',background:t.bgInput,color:t.text,minHeight:60,resize:'vertical'}} value={painelObs} onChange={e=>setPainelObs(e.target.value)} placeholder="Ex: peças trocadas, garantia..."/>
-            </div>
-            <div style={{display:'flex',gap:8}}>
-              <button style={{flex:1,padding:'14px',borderRadius:8,background:'transparent',border:'1px solid '+t.border,color:t.textSoft,fontSize:14,cursor:'pointer'}} onClick={()=>{setPainelOS(null);setEhTaxa(false)}}>Cancelar</button>
-              <button style={{flex:2,padding:'14px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:14,cursor:'pointer',fontWeight:600,opacity:salvandoOS?0.7:1}} onClick={confirmarOS} disabled={salvandoOS}>
-                {salvandoOS?'Salvando...':'✓ Marcar como concluído'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* PAINEL CONFIRMAR SERVIÇO — renderiza no body (funciona em qualquer tela) */}
+      <PainelConfirmar os={painelOS} t={t} onFechar={()=>setPainelOS(null)} onSalvo={()=>{setPainelOS(null);loadData(user)}}/>
       {isGestor?(
         <>
           <div style={{display:'flex',justifyContent:'flex-end',marginBottom:14}}>
@@ -968,7 +833,7 @@ export default function Dashboard(){
                 {o.data_entrada&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Data:</span>{new Date(o.data_entrada+'T12:00').toLocaleDateString('pt-BR')}</div>}
                 {o.valor>0&&<div style={{display:'flex',gap:6}}><span style={{fontWeight:500,color:t.text,minWidth:70}}>Valor:</span><strong style={{color:t.accent}}>{fmt(o.valor)}</strong></div>}
               </div>
-              <button onClick={()=>{setPainelOS(o);setPainelValor(o.valor||0);setPainelPecas(o.valor_pecas||0);setPainelTaxa(0);setEhTaxa(false);setPainelObs(o.observacoes||'')}}
+              <button onClick={()=>{setPainelOS(o)}}
                 style={{width:'100%',padding:'12px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:15,cursor:'pointer',fontWeight:600}}>
                 ✓ Confirmar serviço
               </button>

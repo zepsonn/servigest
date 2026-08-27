@@ -58,8 +58,9 @@ function EstilosGlobais({t}) {
     .sg-btn{transition:filter .16s ease,transform .16s ease}
     .sg-btn:hover{filter:brightness(1.07)}
     .sg-btn:active{transform:scale(.97)}
-    .sg-fade{animation:sgFade .32s ease both}
-    @keyframes sgFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+    /* so opacidade — animar transform aqui quebra position:fixed dos modais */
+    .sg-fade{animation:sgFade .28s ease both}
+    @keyframes sgFade{from{opacity:0}to{opacity:1}}
     @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
     ::-webkit-scrollbar{width:9px;height:9px}
     ::-webkit-scrollbar-thumb{background:${t.border};border-radius:99px}
