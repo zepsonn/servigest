@@ -7,6 +7,7 @@ import { TextoFormatado, MARCADORES, aplicarMarca } from '../lib/texto'
 import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
 import { copiarOS } from '../lib/whatsapp'
 import PainelConfirmar from '../components/PainelConfirmar'
+import { SERVICOS_PADRAO, GRUPOS_SERVICO } from '../lib/servicos'
 
 function useIsMobile(){ const [m,setM]=useState(false); useEffect(()=>{const c=()=>setM(window.innerWidth<768);c();window.addEventListener('resize',c);return()=>window.removeEventListener('resize',c)},[]);return m }
 
@@ -78,7 +79,11 @@ function CampoServico({f,setF,t,sugestoes}){
   }
   const linhas=v.split('\n')
   const atual=(linhas[linhas.length-1]||'').trim().toLowerCase()
-  const lista=sugestoes.filter(s=>!atual||s.toLowerCase().includes(atual)).filter(s=>s.toLowerCase()!==atual).slice(0,8)
+  // junta o historico da empresa com a lista padrao (sem repetir)
+  const todas=[...new Set([...(sugestoes||[]), ...SERVICOS_PADRAO])]
+  const lista=todas.filter(s=>!atual||s.toLowerCase().includes(atual)).filter(s=>s.toLowerCase()!==atual).slice(0,10)
+  // quando o campo esta vazio, mostra os grupos pra escolher
+  const mostrarGrupos = !atual && !v.trim()
   function escolher(s){
     const l=v.split('\n'); l[l.length-1]=s
     setF({...f,servico:l.join('\n')+'\n'}); setAberto(true)
@@ -100,7 +105,26 @@ function CampoServico({f,setF,t,sugestoes}){
     <textarea ref={ref} style={st} value={v} placeholder={'Ex:\nTroca de motor\nCarga de gás'}
       onChange={e=>setF({...f,servico:e.target.value})}
       onFocus={()=>setAberto(true)} onBlur={()=>setTimeout(()=>setAberto(false),180)}/>
-    {aberto&&lista.length>0&&(
+    {aberto&&mostrarGrupos&&(
+      <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:9}}>
+        {GRUPOS_SERVICO.map(g=>(
+          <div key={g.grupo}>
+            <div style={{fontSize:9.5,fontWeight:800,textTransform:'uppercase',letterSpacing:'.06em',color:t.textSoft,marginBottom:5,display:'flex',alignItems:'center',gap:6}}>
+              <span style={{width:8,height:8,borderRadius:99,background:g.cor,display:'inline-block'}}/>{g.grupo}
+            </div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+              {g.itens.slice(0,8).map(s=>(
+                <button key={s} type="button" onMouseDown={e=>e.preventDefault()} onClick={()=>escolher(s)}
+                  style={{padding:'5px 11px',borderRadius:999,border:'1px solid '+t.border,background:t.bgCard,color:t.text,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+    {aberto&&!mostrarGrupos&&lista.length>0&&(
       <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:6}}>
         {lista.map(s=>(
           <button key={s} type="button" onMouseDown={e=>e.preventDefault()} onClick={()=>escolher(s)}

@@ -12,10 +12,10 @@ function useIsMobile(){ const [m,setM]=useState(false); useEffect(()=>{const c=(
 const badgeColors={em_andamento:['#FAEEDA','#854F0B'],concluido:['#EAF3DE','#3B6D11'],concluida:['#EAF3DE','#3B6D11']}
 function Badge({s}){const[bg,c]=badgeColors[s]||['#F1EFE8','#5F5E5A'];return <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:500,background:bg,color:c}}>{(s||'').replace('_',' ')}</span>}
 
+// Dashboard mostra so ENTRADA. Despesas e Lucro sairam daqui a pedido —
+// os dados continuam intactos no banco e na tela de Despesas.
 const CARDS_DEFAULT = [
   {id:'faturamento',label:'Faturamento',tamanho:'medio'},
-  {id:'despesas',label:'Despesas',tamanho:'medio'},
-  {id:'lucro',label:'Lucro',tamanho:'medio'},
   {id:'ticket',label:'Ticket médio',tamanho:'medio'},
   {id:'clientes',label:'Clientes ativos',tamanho:'pequeno'},
   {id:'andamento',label:'Em andamento',tamanho:'pequeno'},
@@ -34,9 +34,11 @@ function loadConfig(){
   try{
     const c=JSON.parse(localStorage.getItem('db_cfg2'))
     if(!c||!c.length) return CARDS_DEFAULT
+    // tira cards que nao existem mais (ex: despesas/lucro)
+    const validos=c.filter(x=>CARDS_DEFAULT.some(d=>d.id===x.id))
     // acrescenta cards novos que ainda nao existiam na config salva
-    const faltando=CARDS_DEFAULT.filter(d=>!c.find(x=>x.id===d.id))
-    return faltando.length?[...c,...faltando]:c
+    const faltando=CARDS_DEFAULT.filter(d=>!validos.find(x=>x.id===d.id))
+    return faltando.length?[...validos,...faltando]:validos
   }
   catch{ return CARDS_DEFAULT }
 }
@@ -258,15 +260,12 @@ export default function Dashboard(){
   if(!user) return null
   const isGestor=user.role==='gestor'
   const fmt=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
-  const lucro=stats.fat-stats.desp
   const ticket=stats.concluidas?stats.fat/stats.concluidas:0
   const maxVal=Math.max(...stats.meses.map(([,v])=>v),1)
   const ausentes=CARDS_DEFAULT.filter(c=>!draft.find(d=>d.id===c.id))
 
   const cardVal={
-    faturamento:{v:fmt(stats.fat),sub:'OS concluídas',c:null,hl:false},
-    despesas:{v:fmt(stats.desp),sub:'gastos da empresa',c:'#A32D2D',hl:false},
-    lucro:{v:fmt(lucro),sub:'fat − despesas',c:lucro>=0?t.accent:'#A32D2D',hl:true},
+    faturamento:{v:fmt(stats.fat),sub:'OS concluídas',c:t.accent,hl:true},
     ticket:{v:fmt(ticket),sub:'por serviço',c:null,hl:false},
     clientes:{v:stats.clientes,sub:null,c:null,hl:false},
     andamento:{v:stats.andamento,sub:null,c:'#854F0B',hl:false},
