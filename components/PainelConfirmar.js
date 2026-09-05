@@ -91,6 +91,9 @@ export default function PainelConfirmar({ os, t, onFechar, onSalvo }) {
   const p = Number(pecas) || 0
   const maoObra = Math.max(total - p, 0)
   const pct = os?.usuarios?.comissao_percentual || 0
+  // o que o cliente ja adiantou (peca sob pedido) — abate do que falta receber
+  const sinal = Number(os?.valor_sinal) || 0
+  const aReceber = Math.max(total - sinal, 0)
 
   return (
     <Painel aberto={!!os} onFechar={onFechar} t={t} titulo="Confirmar serviço"
@@ -121,6 +124,22 @@ export default function PainelConfirmar({ os, t, onFechar, onSalvo }) {
               <label style={rot}>Valor de peças usadas (R$)</label>
               <input type="number" inputMode="decimal" style={campo} value={pecas} onChange={e=>setPecas(e.target.value)} placeholder="0"/>
             </div>
+            {sinal > 0 && (
+              <div style={{padding:'12px 14px',borderRadius:14,marginBottom:14,fontSize:13,
+                           background:t.dark?'#16301C':'#E4F1E1',color:t.dark?'#6CBF7B':'#2E7A3E',
+                           display:'flex',flexDirection:'column',gap:6}}>
+                <div style={{display:'flex',justifyContent:'space-between'}}>
+                  <span>Cliente já adiantou{os.data_sinal?' em '+new Date(os.data_sinal+'T12:00').toLocaleDateString('pt-BR'):''}</span>
+                  <strong style={{fontVariantNumeric:'tabular-nums'}}>− R$ {sinal.toFixed(2)}</strong>
+                </div>
+                <div style={{borderTop:'1px solid currentColor',opacity:.25}}/>
+                <div style={{display:'flex',justifyContent:'space-between',fontWeight:800}}>
+                  <span>Cobrar agora do cliente</span>
+                  <span style={{fontSize:17,fontVariantNumeric:'tabular-nums'}}>R$ {aReceber.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+
             <div style={{padding:'12px 14px',borderRadius:14,background:t.bgSidebar,fontSize:12.5,marginBottom:18,display:'flex',flexDirection:'column',gap:6}}>
               <div style={{display:'flex',justifyContent:'space-between'}}>
                 <span style={{color:t.textSoft}}>Mão de obra (total − peças)</span>

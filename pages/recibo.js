@@ -122,15 +122,20 @@ function Linha({ rotulo, valor, forte, formatado }) {
   )
 }
 
-// Lista de servicos em bullets. Some se nao houver nenhum.
-function LinhaServicos({ texto }) {
-  const itens = String(texto || '').split('\n').map(s => s.trim().replace(/^[-•]\s*/, '')).filter(Boolean)
+/** Quebra um campo multilinha em itens, tirando marcador solto. */
+export function itensDe(texto) {
+  return String(texto || '').split('\n').map(s => s.trim().replace(/^[-•]\s*/, '')).filter(Boolean)
+}
+
+// Lista em bullets quando tem mais de um. Some se nao houver nenhum.
+function LinhaLista({ texto, um, varios, forte }) {
+  const itens = itensDe(texto)
   if (!itens.length) return null
   return (
     <div className="rec-linha">
-      <span className="rec-rot">{itens.length > 1 ? 'Serviços realizados' : 'Serviço realizado'}</span>
+      <span className="rec-rot">{itens.length > 1 ? varios : um}</span>
       {itens.length === 1
-        ? <span className="rec-val"><TextoFormatado texto={itens[0]}/></span>
+        ? <span className="rec-val" style={forte ? { fontWeight:700, fontSize:15 } : undefined}><TextoFormatado texto={itens[0]}/></span>
         : <ul className="rec-ul">{itens.map((s, i) => <li key={i}><TextoFormatado texto={s}/></li>)}</ul>}
     </div>
   )
@@ -142,9 +147,9 @@ const CSS_RECIBO = `
      font-family:var(--fonte-sg),-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
      box-shadow:0 18px 45px -20px rgba(0,0,0,.28)}
 .rec-topo{padding:30px 24px 24px;text-align:center;background:linear-gradient(160deg,#1D9E75,#137a58);color:#fff}
-.rec-check{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.2);margin:0 auto 14px;
-           display:flex;align-items:center;justify-content:center}
-.rec-check svg{width:28px;height:28px;stroke:#fff;stroke-width:2.6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.rec-logo{width:74px;height:74px;border-radius:20px;background:#fff;margin:0 auto 15px;
+          display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -6px rgba(0,0,0,.3)}
+.rec-logo img{width:52px;height:52px;object-fit:contain;display:block}
 .rec-status{font-size:12.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.92}
 .rec-valor{font-size:38px;font-weight:800;letter-spacing:-.02em;margin:6px 0 2px;font-variant-numeric:tabular-nums}
 .rec-emp{font-size:13.5px;font-weight:700;margin-top:12px}
@@ -266,15 +271,20 @@ export default function Recibo() {
       alterada: !!os.alterada,
       subtitulo: 'OS Nº ' + form.numero + (empresa.cnpj ? '   ·   CNPJ ' + empresa.cnpj : ''),
       empresa: { nome: empresa.nome, endereco: empresa.cidade, telefone: empresa.telefone, email: empresa.email },
+      logo: LOGO_SRC,
       campos: [
         { rotulo: 'Cliente',  valor: form.cliente_nome, forte: true },
         { rotulo: 'Telefone', valor: form.cliente_telefone },
         { rotulo: 'Endereço', valor: form.cliente_endereco },
-        { rotulo: 'Aparelho', valor: form.produto, forte: true },
+      ],
+      listas: [
+        { itens: itensDe(form.produto), um: 'APARELHO', varios: 'APARELHOS', forte: true },
+        { itens: itensDe(form.servico), um: 'SERVIÇO REALIZADO', varios: 'SERVIÇOS REALIZADOS' },
+      ],
+      camposFim: [
         { rotulo: 'Relato do cliente', valor: form.relato_cliente },
         { rotulo: 'Diagnóstico', valor: form.descricao },
       ],
-      servicos: String(form.servico||'').split('\n').map(x=>x.trim().replace(/^[-•]\s*/,'')).filter(Boolean),
       rodape: [
         { rotulo: 'Técnico', valor: os.usuarios?.nome || '' },
         { rotulo: 'Atendimento', valor: form.data_entrada ? fmtDate(form.data_entrada) : '' },
@@ -432,7 +442,9 @@ export default function Recibo() {
                   <EditField campo="cliente_nome" label="Nome"/>
                   <EditField campo="cliente_telefone" label="Telefone"/>
                   <EditField campo="cliente_endereco" label="Endereco" gridFull/>
-                  <EditField campo="produto" label="Produto/Equipamento" gridFull/>
+                  <div style={{gridColumn:'1/-1'}}>
+                    <EditField campo="produto" label="Aparelhos (um por linha)" textarea/>
+                  </div>
                 </div>
                 <div style={{marginTop:12,fontSize:13}}>
                   <span style={{fontWeight:600,color:t.textSoft,fontSize:11,textTransform:'uppercase',letterSpacing:'.05em'}}>Servico realizado</span>
@@ -452,9 +464,7 @@ export default function Recibo() {
               <div id="recibo-para-imprimir">
                 <div className="rec">
                   <div className="rec-topo">
-                    <div className="rec-check">
-                      <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
-                    </div>
+                    <div className="rec-logo"><img src={LOGO_SRC} alt=""/></div>
                     <div className="rec-status">{concluida ? 'Serviço concluído' : 'Recibo de serviço'}</div>
                     <div className="rec-valor">{fmt(form.valor)}</div>
                     <div className="rec-emp">{empresa.nome}</div>
@@ -471,8 +481,8 @@ export default function Recibo() {
                     <Linha rotulo="Cliente"   valor={form.cliente_nome} forte/>
                     <Linha rotulo="Telefone"  valor={form.cliente_telefone}/>
                     <Linha rotulo="Endereço"  valor={form.cliente_endereco}/>
-                    <Linha rotulo="Aparelho"  valor={form.produto} forte/>
-                    <LinhaServicos texto={form.servico}/>
+                    <LinhaLista texto={form.produto} um="Aparelho" varios="Aparelhos" forte/>
+                    <LinhaLista texto={form.servico} um="Serviço realizado" varios="Serviços realizados"/>
                     <Linha rotulo="Relato do cliente" valor={form.relato_cliente} formatado/>
                     <Linha rotulo="Diagnóstico"       valor={form.descricao} formatado/>
                   </div>

@@ -7,12 +7,20 @@ import { TextoFormatado, MARCADORES, aplicarMarca } from '../lib/texto'
 import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
 import { copiarOS } from '../lib/whatsapp'
 import PainelConfirmar from '../components/PainelConfirmar'
+import PainelSinal from '../components/PainelSinal'
 import { SERVICOS_PADRAO, GRUPOS_SERVICO } from '../lib/servicos'
 
 function useIsMobile(){ const [m,setM]=useState(false); useEffect(()=>{const c=()=>setM(window.innerWidth<768);c();window.addEventListener('resize',c);return()=>window.removeEventListener('resize',c)},[]);return m }
 
-const STATUS_COLORS = {em_andamento:['#FAEEDA','#854F0B'],concluida:['#EAF3DE','#3B6D11']}
-function Badge({s}){ const [bg,c]=STATUS_COLORS[s]||['#F1EFE8','#5F5E5A']; return <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:500,background:bg,color:c}}>{(s||'').replace('_',' ')}</span>}
+const STATUS_COLORS = {
+  em_andamento:    ['#FAEEDA','#854F0B','Em andamento'],
+  aguardando_peca: ['#E7EFFE','#1E48A8','Aguardando peça'],
+  concluida:       ['#EAF3DE','#3B6D11','Concluída'],
+}
+function Badge({s}){
+  const [bg,c,rot]=STATUS_COLORS[s]||['#F1EFE8','#5F5E5A',(s||'').replace('_',' ')]
+  return <span style={{display:'inline-block',padding:'3px 9px',borderRadius:999,fontSize:10.5,fontWeight:700,background:bg,color:c,whiteSpace:'nowrap'}}>{rot}</span>
+}
 
 const BAIRROS_CURITIBA = [
   'Abranches','Água Verde','Ahú','Alto Boqueirão','Alto da Glória','Alto da Rua XV',
@@ -161,7 +169,8 @@ function FormOS({f,setF,t,agendamentos,tecnicos,servicosSalvos}){
     </div>
 
     <div style={sec}>SERVIÇO</div>
-    <FG label="Produto/Equipamento" value={f.produto||''} onChange={v=>setF({...f,produto:v})} t={t} placeholder="Ex: Geladeira Brastemp"/>
+    <FG label="Aparelho / Equipamento" value={f.produto||''} onChange={v=>setF({...f,produto:v})} t={t} textarea
+        placeholder={'Um por linha. Ex:\nGeladeira Brastemp BRM44\nLavadora Consul 11kg'}/>
     <CampoServico f={f} setF={setF} t={t} sugestoes={servicosSalvos||[]}/>
     <FG label="Relato do cliente (o que ele falou)" value={f.relato_cliente||''} onChange={v=>setF({...f,relato_cliente:v})} t={t} textarea placeholder="Ex: Cliente disse que a geladeira não está gelando e faz barulho"/>
     <FG label="Diagnóstico / Descrição" value={f.descricao||''} onChange={v=>setF({...f,descricao:v})} t={t} textarea/>
@@ -211,6 +220,7 @@ export default function OS() {
   const [servicosSalvos, setServicosSalvos] = useState([])
   const [copiadoId, setCopiadoId] = useState(null)
   const [confirmando, setConfirmando] = useState(null)
+  const [pedindoPeca, setPedindoPeca] = useState(null)
   const [user, setUser] = useState(null)
   const [form, setForm] = useState(FORM0)
   const [editForm, setEditForm] = useState({})
@@ -302,14 +312,15 @@ export default function OS() {
   return (
     <Layout title="Ordens de Serviço">
       <PainelConfirmar os={confirmando} t={t} onFechar={()=>setConfirmando(null)} onSalvo={()=>{setConfirmando(null);loadOS()}}/>
+      <PainelSinal os={pedindoPeca} t={t} onFechar={()=>setPedindoPeca(null)} onSalvo={()=>{setPedindoPeca(null);loadOS()}}/>
       <div style={{display:'flex',gap:8,marginBottom:14}}>
         <input style={{flex:1,padding:'9px 14px',borderRadius:8,border:'1px solid '+t.border,background:t.bgInput,fontSize:13,fontFamily:'inherit',color:t.text}} placeholder="Buscar por nome, bairro, produto..." value={busca} onChange={e=>setBusca(e.target.value)}/>
         <button style={{padding:'9px 16px',borderRadius:8,background:t.accent,color:'#fff',border:'none',fontSize:13,cursor:'pointer',fontWeight:500,whiteSpace:'nowrap'}} onClick={()=>setModal(true)}>+ Nova OS</button>
       </div>
 
       {/* CARDS DE STATUS */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}}>
-        {[['Em andamento','em_andamento','#854F0B'],['Concluídas','concluida','#3B6D11']].map(([label,st,color])=>(
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:16}}>
+        {[['Em andamento','em_andamento','#9A5F0C'],['Aguardando peça','aguardando_peca','#1E48A8'],['Concluídas','concluida','#2E7A3E']].map(([label,st,color])=>(
           <div key={st} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:10,padding:'12px 14px',boxShadow:t.shadow}}>
             <div style={{fontSize:10,color:t.textSoft,marginBottom:4,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>{label}</div>
             <div style={{fontSize:24,fontWeight:700,color,fontVariantNumeric:'tabular-nums'}}>{lista.filter(o=>o.status===st).length}</div>
@@ -397,6 +408,14 @@ export default function OS() {
                   {o.status!=='concluida'&&(
                     <BotaoPill n="confirmar" t={t} onClick={()=>concluir(o)}
                       style={{background:t.accent,color:'#fff',border:'1px solid '+t.accent,boxShadow:'0 6px 14px -5px '+t.accent+'99'}}>Concluir</BotaoPill>
+                  )}
+                  {o.status!=='concluida'&&(
+                    <BotaoPill n="caixa" t={t} onClick={()=>setPedindoPeca(o)}
+                      style={o.status==='aguardando_peca'
+                        ?{background:'#E7EFFE',color:'#1E48A8',border:'1px solid #bcd0f7'}
+                        :undefined}>
+                      {o.status==='aguardando_peca'?'Peça pedida':'Peça sob pedido'}
+                    </BotaoPill>
                   )}
                   <BotaoIco n="editar"   t={t} titulo="Editar OS"          onClick={()=>{setEditForm({...o,tecnico_id:o.tecnico_id||''});setEditModal(o);setDetalhe(null)}}/>
                   <BotaoIco n="recibo"   t={t} titulo="Gerar recibo"       onClick={()=>router.push('/recibo?os='+o.id)}/>

@@ -21,6 +21,7 @@ const CARDS_DEFAULT = [
   {id:'andamento',label:'Em andamento',tamanho:'pequeno'},
   {id:'concluidas',label:'Concluídas',tamanho:'pequeno'},
   {id:'hoje',label:'Agenda hoje',tamanho:'pequeno'},
+  {id:'aguardando_peca',label:'Aguardando peça',tamanho:'medio'},
   {id:'calendario',label:'Calendário de serviços',tamanho:'largo'},
   {id:'localizacao',label:'Localização dos técnicos',tamanho:'medio'},
   {id:'agenda',label:'Agenda de serviços',tamanho:'largo'},
@@ -85,6 +86,11 @@ export default function Dashboard(){
     })
     // calendario do mes atual
     carregarMes(new Date().toISOString().slice(0,7))
+    // OS esperando peca chegar
+    supabase.from('ordens_servico')
+      .select('id,numero,cliente_nome,produto,peca_pedida,valor,valor_sinal,data_sinal')
+      .eq('status','aguardando_peca').order('data_sinal')
+      .then(({data})=>setEsperandoPeca(data||[]))
     // ultima localizacao de cada tecnico — so o gestor carrega isso
     if(u.role==='gestor'){
       supabase.from('localizacoes_tecnico').select('tecnico_id,lat,lng,criado_em')
@@ -199,6 +205,7 @@ export default function Dashboard(){
   const [painelOS, setPainelOS] = useState(null)
   const [tecnicos, setTecnicos] = useState([])
   const [locais, setLocais] = useState({})
+  const [esperandoPeca, setEsperandoPeca] = useState([])
   const [comissoes, setComissoes] = useState({})
 
 
@@ -356,6 +363,46 @@ export default function Dashboard(){
     const isOver=edit&&overIdx===idx&&dragIdx!==idx
     const baseStyle={background:t.bgCard,border:'1px solid '+(isOver?t.accent:t.border),borderRadius:16,boxShadow:t.shadow,overflow:'hidden',gridColumn:colSpan(card.tamanho),opacity:isDragging?0.4:1,position:'relative',cursor:edit?'grab':'default'}
     const dragProps=edit?{draggable:true,onDragStart:()=>dgStart(idx),onDragOver:e=>dgOver(e,idx),onDrop:e=>dgDrop(e,idx),onDragEnd:dgEnd}:{}
+
+    // ---------- AGUARDANDO PECA ----------
+    if(card.id==='aguardando_peca'){
+      const hoje=new Date()
+      const lista=(esperandoPeca||[]).map(o=>({
+        ...o, dias: o.data_sinal ? Math.round((hoje-new Date(o.data_sinal+'T12:00'))/86400000) : null
+      })).sort((a,b)=>(b.dias||0)-(a.dias||0))
+      const totalSinal=lista.reduce((s,o)=>s+Number(o.valor_sinal||0),0)
+      return (
+        <div key={card.id} {...dragProps} style={baseStyle}>
+          {edit&&<EditOverlay card={card} t={t} onRemove={()=>remover(card.id)} onTam={tam=>setTam(card.id,tam)}/>}
+          <div style={{padding:'14px 18px',borderBottom:'1px solid '+t.borderSoft,display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+            <span style={{fontSize:14,fontWeight:700,color:t.text}}>Aguardando peça</span>
+            {totalSinal>0&&<span style={{fontSize:11,fontWeight:700,color:'#1E48A8',background:'#E7EFFE',borderRadius:999,padding:'3px 10px'}}>{fmt(totalSinal)} adiantado</span>}
+          </div>
+          {lista.length===0&&<div style={{padding:'22px 18px',fontSize:13,color:t.textSoft,textAlign:'center'}}>Nenhuma peça pendente.</div>}
+          {lista.map(o=>{
+            const atrasada=o.dias!=null&&o.dias>15
+            return (
+              <div key={o.id} style={{display:'flex',alignItems:'center',gap:11,padding:'11px 18px',borderBottom:'1px solid '+t.borderSoft}}>
+                <div style={{width:3,alignSelf:'stretch',borderRadius:99,background:atrasada?'#C24141':'#2F6FED',flexShrink:0}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13.5,fontWeight:700,color:t.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
+                  <div style={{fontSize:11.5,color:t.textSoft,marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                    {[o.peca_pedida||o.produto, o.dias!=null?('há '+o.dias+'d'):null].filter(Boolean).join(' · ')}
+                  </div>
+                </div>
+                <div style={{textAlign:'right',flexShrink:0}}>
+                  {Number(o.valor_sinal)>0&&<div style={{fontSize:12.5,fontWeight:700,color:'#2E7A3E',fontVariantNumeric:'tabular-nums'}}>{fmt(o.valor_sinal)}</div>}
+                  {atrasada&&<div style={{fontSize:9.5,fontWeight:800,color:'#C24141'}}>COBRAR FORNEC.</div>}
+                </div>
+              </div>
+            )
+          })}
+          <div style={{padding:'10px 18px',fontSize:11.5,color:t.textSoft,background:t.bgSidebar,lineHeight:1.5}}>
+            O adiantado não entra no faturamento — só quando a OS for concluída.
+          </div>
+        </div>
+      )
+    }
 
     // ---------- CALENDARIO DE SERVICOS ----------
     if(card.id==='calendario'){
