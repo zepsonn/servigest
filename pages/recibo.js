@@ -290,11 +290,23 @@ export default function Recibo() {
   const familiaFonte = typeof window!=='undefined'
     ? getComputedStyle(document.body).fontFamily : undefined
 
+  // Nome do arquivo com o cliente. Tira acento e os caracteres que o
+  // Windows/Android nao aceitam em nome de arquivo (\ / : * ? " < > |).
+  function nomeArquivo(){
+    const limpo = String(form.cliente_nome||'')
+      .normalize('NFD').replace(/[̀-ͯ]/g,'')   // acentos
+      .replace(/[\\/:*?"<>|]/g,'')                        // proibidos
+      .replace(/\s+/g,' ').trim()
+      .slice(0,60)
+    // so o nome do cliente. Sem nome, cai pro numero da OS pra nao ficar sem titulo.
+    return (limpo || 'Recibo OS ' + form.numero) + '.png'
+  }
+
   async function baixarImagem(){
     setGerando(true)
     try{
       const cv = await gerarReciboPNG(dadosImagem(), familiaFonte)
-      baixarCanvas(cv, 'recibo-os-'+form.numero+'.png')
+      baixarCanvas(cv, nomeArquivo())
     }catch(e){ alert('Nao consegui gerar a imagem: '+e.message) }
     setGerando(false)
   }
@@ -305,7 +317,7 @@ export default function Recibo() {
     setGerando(true)
     try{
       const cv = await gerarReciboPNG(dadosImagem(), familiaFonte)
-      const arquivo = await canvasParaArquivo(cv, 'recibo-os-'+form.numero+'.png')
+      const arquivo = await canvasParaArquivo(cv, nomeArquivo())
       const texto = MSG_AVALIACAO
 
       if(arquivo && navigator.canShare && navigator.canShare({files:[arquivo]})){
@@ -315,7 +327,7 @@ export default function Recibo() {
       }
 
       // sem compartilhamento nativo: baixa a imagem e abre a conversa com o texto
-      baixarCanvas(cv, 'recibo-os-'+form.numero+'.png')
+      baixarCanvas(cv, nomeArquivo())
       const tel = formatarTelBR(form.cliente_telefone)
       const url = tel.length>=12
         ? 'https://wa.me/'+tel+'?text='+encodeURIComponent(texto)
