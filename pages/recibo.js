@@ -74,6 +74,74 @@ function CampoServico({ valor, onChange, sugestoes, cor }) {
   )
 }
 
+// Linha do recibo. Se o valor estiver vazio, NAO renderiza nada —
+// e o que deixa o recibo curto quando a OS tem pouca informacao.
+function Linha({ rotulo, valor, forte, formatado }) {
+  const v = String(valor == null ? '' : valor).trim()
+  if (!v || v === '-' || v === '—') return null
+  return (
+    <div className="rec-linha">
+      <span className="rec-rot">{rotulo}</span>
+      <span className="rec-val" style={forte ? { fontWeight: 700, fontSize: 15 } : undefined}>
+        {formatado ? <TextoFormatado texto={v}/> : v}
+      </span>
+    </div>
+  )
+}
+
+// Lista de servicos em bullets. Some se nao houver nenhum.
+function LinhaServicos({ texto }) {
+  const itens = String(texto || '').split('\n').map(s => s.trim().replace(/^[-•]\s*/, '')).filter(Boolean)
+  if (!itens.length) return null
+  return (
+    <div className="rec-linha">
+      <span className="rec-rot">{itens.length > 1 ? 'Serviços realizados' : 'Serviço realizado'}</span>
+      {itens.length === 1
+        ? <span className="rec-val"><TextoFormatado texto={itens[0]}/></span>
+        : <ul className="rec-ul">{itens.map((s, i) => <li key={i}><TextoFormatado texto={s}/></li>)}</ul>}
+    </div>
+  )
+}
+
+// CSS do recibo — usado na tela E na impressao (mesmo visual nos dois)
+const CSS_RECIBO = `
+.rec{max-width:420px;margin:0 auto;background:#fff;color:#16150f;border-radius:22px;overflow:hidden;
+     font-family:var(--fonte-sg),-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+     box-shadow:0 18px 45px -20px rgba(0,0,0,.28)}
+.rec-topo{padding:30px 24px 24px;text-align:center;background:linear-gradient(160deg,#1D9E75,#137a58);color:#fff}
+.rec-check{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.2);margin:0 auto 14px;
+           display:flex;align-items:center;justify-content:center}
+.rec-check svg{width:28px;height:28px;stroke:#fff;stroke-width:2.6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.rec-status{font-size:12.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.92}
+.rec-valor{font-size:38px;font-weight:800;letter-spacing:-.02em;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.rec-emp{font-size:13.5px;font-weight:700;margin-top:12px}
+.rec-sub{font-size:11.5px;opacity:.85;margin-top:2px;line-height:1.45}
+.rec-serrilha{height:22px;background:#fff;position:relative}
+.rec-serrilha:before{content:'';position:absolute;top:50%;left:18px;right:18px;
+                     border-top:2px dashed #d8d5cc;transform:translateY(-50%)}
+.rec-corpo{padding:6px 24px 4px;background:#fff}
+.rec-linha{padding:11px 0;border-bottom:1px solid #f1efe9}
+.rec-linha:last-child{border-bottom:none}
+.rec-rot{display:block;font-size:9.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#9c988c;margin-bottom:3px}
+.rec-val{display:block;font-size:14px;line-height:1.45;color:#16150f;white-space:pre-wrap;word-break:break-word}
+.rec-ul{margin:2px 0 0;padding-left:17px}
+.rec-ul li{font-size:14px;line-height:1.5;margin-bottom:2px}
+.rec-rodape{padding:16px 24px 22px;background:#faf9f6;border-top:1px solid #f1efe9;
+            display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.rec-rod-item{font-size:11px}
+.rec-rod-item b{display:block;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#9c988c;margin-bottom:2px}
+.rec-rod-item span{font-size:12.5px;font-weight:600;color:#16150f}
+.rec-obrigado{text-align:center;font-size:11px;color:#9c988c;padding:0 24px 20px;background:#faf9f6;line-height:1.5}
+.rec-selo{display:inline-block;background:#F7ECD9;color:#9A5F0C;border-radius:999px;
+          padding:3px 10px;font-size:9.5px;font-weight:800;letter-spacing:.05em;margin-top:8px}
+@media print{
+  body{margin:0;padding:0;background:#fff}
+  .rec{box-shadow:none;max-width:100%;border-radius:0}
+  .rec-topo{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:80mm auto;margin:4mm}
+}
+`
+
 export default function Recibo() {
   const [os, setOs] = useState(null)
   const [form, setForm] = useState(null)
@@ -152,19 +220,38 @@ export default function Recibo() {
     const telFormatado=formatarTelBR(form.cliente_telefone)
     if(telFormatado.length<12){alert('Telefone invalido');return}
     const linha='================================'
-    const msg=[empresa.nome,linha,'RECIBO - OS N. '+form.numero,linha,'','Cliente: '+(form.cliente_nome||'-'),'Telefone: '+(form.cliente_telefone||'-'),'Endereco: '+(form.cliente_endereco||'-'),'','Produto: '+(form.produto||'-'),fmtServicoWhats(form.servico),form.relato_cliente?'Relato do cliente: '+form.relato_cliente:null,form.descricao?'Diagnostico: '+form.descricao:'','Data: '+fmtDate(form.data_entrada),'',linha,'VALOR TOTAL: '+fmt(form.valor),linha,'','Agradecemos pela confianca e preferencia!','Qualquer duvida estamos a disposicao.','',empresa.nome,'Tel: '+(empresa.telefone||''),'Email: '+(empresa.email||''),].filter(l=>l!==null).join('\n')
+    // so entra no texto o que estiver preenchido — nada de "Campo: -"
+    const msg=[
+      '*'+empresa.nome+'*', linha,
+      (concluida?'RECIBO - SERVICO CONCLUIDO':'RECIBO DE SERVICO')+' - OS N. '+form.numero, linha, '',
+      form.cliente_nome      ? 'Cliente: '+form.cliente_nome : null,
+      form.cliente_telefone  ? 'Telefone: '+form.cliente_telefone : null,
+      form.cliente_endereco  ? 'Endereco: '+form.cliente_endereco : null,
+      form.produto           ? 'Aparelho: '+form.produto : null,
+      String(form.servico||'').trim() ? '' : null,
+      String(form.servico||'').trim() ? fmtServicoWhats(form.servico) : null,
+      form.relato_cliente    ? 'Relato do cliente: '+form.relato_cliente : null,
+      form.descricao         ? 'Diagnostico: '+form.descricao : null,
+      '',
+      form.data_entrada      ? 'Atendimento: '+fmtDate(form.data_entrada) : null,
+      dataFim                ? 'Concluido em: '+fmtDate(dataFim) : null,
+      os.usuarios?.nome      ? 'Tecnico: '+os.usuarios.nome : null,
+      linha, '*VALOR TOTAL: '+fmt(form.valor)+'*', linha, '',
+      'Obrigado pela preferencia!',
+      empresa.telefone ? 'Tel: '+empresa.telefone : null,
+    ].filter(l=>l!==null).join('\n')
     window.open('https://wa.me/'+telFormatado+'?text='+encodeURIComponent(msg),'_blank')
   }
 
   function imprimir(){
-    const conteudo=document.getElementById('recibo-para-imprimir').innerHTML
-    const janela=window.open('','_blank','width=800,height=600')
-    janela.document.write('<html><head><title>Recibo OS '+(form?.numero||'')+'</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#1a1a1a;max-width:700px;margin:0 auto}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #e0e0e0}.logo{width:56px;height:56px;border-radius:8px;object-fit:contain}.section{margin-bottom:16px;padding:14px;background:#f9f9f7;border-radius:8px;border:1px solid #eee}.section-title{font-size:10px;font-weight:700;text-transform:uppercase;color:#aaa;margin-bottom:10px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px}.full{grid-column:1/-1}.total-row{display:flex;justify-content:flex-end;align-items:center;gap:16px;padding:12px 0;border-top:2px solid #1D9E75}.total-val{font-size:22px;font-weight:700;color:#1D9E75}.assinaturas{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:32px;padding-top:16px;border-top:1px dashed #e0e0e0}.assinatura{text-align:center;font-size:11px;color:#888;border-top:1px solid #333;padding-top:6px}.full,.full div,.full span{white-space:pre-wrap}@media print{body{padding:15px}}</style></head><body>')
-    janela.document.write(conteudo)
-    janela.document.write('</body></html>')
-    janela.document.close()
-    setTimeout(()=>janela.print(),500)
+    const el=document.getElementById("recibo-para-imprimir")
+    if(!el){alert("Saia do modo de edicao para imprimir.");return}
+    const j=window.open("","_blank","width=460,height=760")
+    j.document.write("<html><head><title>Recibo OS "+(form?.numero||"")+"</title><style>"+CSS_RECIBO+"body{background:#fff;padding:0;margin:0}</style></head><body>"+el.innerHTML+"</body></html>")
+    j.document.close()
+    setTimeout(()=>j.print(),450)
   }
+
 
   function EditField({campo,label,type,textarea,gridFull}){
     return <div style={gridFull?{gridColumn:'1/-1'}:{}}>
@@ -178,6 +265,12 @@ export default function Recibo() {
             :<TextoFormatado texto={form[campo]||'-'} style={{color:'#333'}}/>)}
     </div>
   }
+
+  const concluida = os && os.status === 'concluida'
+  // 140 das 300 OS concluidas foram fechadas sem gravar data_conclusao.
+  // Como o atendimento aqui e no mesmo dia, cai pra data de entrada em vez
+  // de sumir do recibo. Se nao houver nenhuma das duas, a linha nao aparece.
+  const dataFim = form ? (form.data_conclusao || (concluida ? form.data_entrada : null)) : null
 
   const s = {
     card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:16,boxShadow:t.shadow,overflow:'hidden'},
@@ -205,68 +298,84 @@ export default function Recibo() {
               <button style={s.btnSm} onClick={imprimir}>Imprimir / PDF</button>
               <button style={{...s.btnSm,background:'#25D366',color:'#fff',border:'1px solid #25D366'}} onClick={sendWhatsApp}>Enviar WhatsApp</button>
             </div>
-            <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:16,boxShadow:t.shadow,padding:28}}>
-              <div id="recibo-para-imprimir">
-                <div class="header" style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20,paddingBottom:16,borderBottom:'2px solid #e0e0e0'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:12}}>
-                    <img src={LOGO_SRC} class="logo" alt="logo" style={{width:56,height:56,borderRadius:8,objectFit:'contain',border:'1px solid #f0f0f0'}}/>
-                    <div>
-                      <div style={{fontSize:18,fontWeight:700,color:'#1a1a1a'}}>{empresa.nome}</div>
-                      <div style={{fontSize:11,color:'#888'}}>CNPJ: {empresa.cnpj}</div>
-                      <div style={{fontSize:11,color:'#888'}}>{empresa.cidade}</div>
-                      <div style={{fontSize:11,color:'#888'}}>{empresa.telefone} - {empresa.email}</div>
-                    </div>
-                  </div>
-                  <div style={{textAlign:'right'}}>
-                    <div style={{background:'#1D9E75',color:'#fff',padding:'3px 10px',borderRadius:4,fontSize:10,fontWeight:700,display:'inline-block',marginBottom:4}}>RECIBO</div>
-                    {os.alterada&&<div style={{background:'#FAEEDA',color:'#854F0B',padding:'2px 8px',borderRadius:4,fontSize:9,fontWeight:700,display:'inline-block',marginLeft:4}}>ALTERADA</div>}
-                    <div style={{fontSize:20,fontWeight:700,color:'#1D9E75'}}>OS N. {form.numero}</div>
-                    <div style={{fontSize:11,color:'#888'}}>Emissao: {fmtDate(form.data_entrada)}</div>
-                  </div>
+            <style dangerouslySetInnerHTML={{__html: CSS_RECIBO}}/>
+
+            {editando ? (
+              /* ---------- MODO EDICAO: formulario simples ---------- */
+              <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:20,boxShadow:t.shadow,padding:20,maxWidth:520,margin:'0 auto'}}>
+                <div style={{fontSize:15,fontWeight:700,color:t.text,marginBottom:14}}>Editar campos do recibo</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                  <EditField campo="cliente_nome" label="Nome"/>
+                  <EditField campo="cliente_telefone" label="Telefone"/>
+                  <EditField campo="cliente_endereco" label="Endereco" gridFull/>
+                  <EditField campo="produto" label="Produto/Equipamento" gridFull/>
                 </div>
-                <div class="section" style={{marginBottom:16,padding:14,background:'#f9f9f7',borderRadius:8,border:'1px solid #eee'}}>
-                  <div class="section-title" style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:'#aaa',marginBottom:10}}>Dados do Cliente</div>
-                  <div class="grid2" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,fontSize:13}}>
-                    <EditField campo="cliente_nome" label="Nome"/>
-                    <EditField campo="cliente_telefone" label="Telefone"/>
-                    <EditField campo="cliente_endereco" label="Endereco" gridFull/>
-                  </div>
+                <div style={{marginTop:12,fontSize:13}}>
+                  <span style={{fontWeight:600,color:t.textSoft,fontSize:11,textTransform:'uppercase',letterSpacing:'.05em'}}>Servico realizado</span>
+                  <CampoServico valor={form.servico} onChange={v=>up('servico',v)} sugestoes={servicosSalvos} cor={t.accent}/>
                 </div>
-                <div class="section" style={{marginBottom:16,padding:14,background:'#f9f9f7',borderRadius:8,border:'1px solid #eee'}}>
-                  <div class="section-title" style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:'#aaa',marginBottom:10}}>Ordem de Servico</div>
-                  <div class="grid2" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,fontSize:13,marginBottom:10}}>
-                    <EditField campo="produto" label="Produto/Equipamento"/>
-                    <div><span style={{fontWeight:600,color:'#555'}}>Tecnico:</span> {os.usuarios?.nome||'-'}</div>
-                    <div><span style={{fontWeight:600,color:'#555'}}>Data entrada:</span> {fmtDate(form.data_entrada)}</div>
-                    <div><span style={{fontWeight:600,color:'#555'}}>Data conclusao:</span> {fmtDate(form.data_conclusao)}</div>
-                  </div>
-                  <div style={{marginBottom:8,fontSize:13}} className="full">
-                    <span style={{fontWeight:600,color:'#555'}}>Servico realizado:</span>
-                    {editando
-                      ? <CampoServico valor={form.servico} onChange={v=>up('servico',v)} sugestoes={servicosSalvos} cor="#1D9E75"/>
-                      : <div style={{color:'#333',marginTop:2}}><TextoFormatado texto={form.servico||'-'}/></div>}
-                  </div>
-                  <div style={{marginBottom:8,fontSize:13}}><EditField campo="relato_cliente" label="Relato do cliente" textarea/></div>
-                  <div style={{fontSize:13}}><EditField campo="descricao" label="Diagnostico" textarea/></div>
-                </div>
-                <div class="total-row" style={{display:'flex',justifyContent:'flex-end',alignItems:'center',gap:16,padding:'12px 0',borderTop:'2px solid #1D9E75',marginTop:8}}>
-                  <span style={{fontSize:13,color:'#666'}}>Total do servico</span>
-                  {editando
-                    ?<input type="number" style={{padding:'4px 8px',borderRadius:6,border:'1px solid #1D9E75',fontSize:18,fontWeight:700,textAlign:'right',width:130,fontFamily:'inherit'}} value={form.valor||0} onChange={e=>up('valor',e.target.value)}/>
-                    :<span class="total-val" style={{fontSize:22,fontWeight:700,color:'#1D9E75'}}>{fmt(form.valor)}</span>}
-                </div>
-                <div class="assinaturas" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,marginTop:32,paddingTop:16,borderTop:'1px dashed #e0e0e0'}}>
-                  <div class="assinatura" style={{textAlign:'center',borderTop:'1px solid #333',paddingTop:6,fontSize:11,color:'#888'}}>{empresa.nome}</div>
-                  <div class="assinatura" style={{textAlign:'center',borderTop:'1px solid #333',paddingTop:6,fontSize:11,color:'#888'}}>Cliente: {form.cliente_nome||'_______'}</div>
+                <div style={{marginTop:12,fontSize:13}}><EditField campo="relato_cliente" label="Relato do cliente" textarea/></div>
+                <div style={{marginTop:12,fontSize:13}}><EditField campo="descricao" label="Diagnostico" textarea/></div>
+                <div style={{marginTop:14}}>
+                  <span style={{display:'block',fontWeight:600,color:t.textSoft,fontSize:11,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:5}}>Valor total</span>
+                  <input type="number" value={form.valor||0} onChange={e=>up('valor',e.target.value)}
+                    style={{width:'100%',padding:'13px 14px',borderRadius:13,border:'1px solid '+t.border,background:t.bgInput,color:t.text,
+                            fontSize:19,fontWeight:700,fontFamily:'inherit',fontVariantNumeric:'tabular-nums'}}/>
                 </div>
               </div>
-              {os.historico_alteracoes&&(
-                <div style={{fontSize:11,color:t.textSoft,marginTop:10,padding:'8px 12px',background:t.bgSidebar,borderRadius:6,borderLeft:'3px solid #E2900A'}}>
-                  <strong>Historico de alteracoes:</strong>
-                  <pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',margin:'4px 0 0',color:t.textSoft}}>{os.historico_alteracoes}</pre>
+            ) : (
+              /* ---------- RECIBO ---------- */
+              <div id="recibo-para-imprimir">
+                <div className="rec">
+                  <div className="rec-topo">
+                    <div className="rec-check">
+                      <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                    </div>
+                    <div className="rec-status">{concluida ? 'Serviço concluído' : 'Recibo de serviço'}</div>
+                    <div className="rec-valor">{fmt(form.valor)}</div>
+                    <div className="rec-emp">{empresa.nome}</div>
+                    <div className="rec-sub">
+                      OS Nº {form.numero}
+                      {empresa.cnpj ? <><br/>CNPJ {empresa.cnpj}</> : null}
+                    </div>
+                    {os.alterada && <div className="rec-selo">ALTERADA</div>}
+                  </div>
+
+                  <div className="rec-serrilha"/>
+
+                  <div className="rec-corpo">
+                    <Linha rotulo="Cliente"   valor={form.cliente_nome} forte/>
+                    <Linha rotulo="Telefone"  valor={form.cliente_telefone}/>
+                    <Linha rotulo="Endereço"  valor={form.cliente_endereco}/>
+                    <Linha rotulo="Aparelho"  valor={form.produto} forte/>
+                    <LinhaServicos texto={form.servico}/>
+                    <Linha rotulo="Relato do cliente" valor={form.relato_cliente} formatado/>
+                    <Linha rotulo="Diagnóstico"       valor={form.descricao} formatado/>
+                  </div>
+
+                  <div className="rec-rodape">
+                    {os.usuarios?.nome && (
+                      <div className="rec-rod-item"><b>Técnico</b><span>{os.usuarios.nome}</span></div>
+                    )}
+                    {form.data_entrada && (
+                      <div className="rec-rod-item"><b>Atendimento</b><span>{fmtDate(form.data_entrada)}</span></div>
+                    )}
+                    {dataFim && (
+                      <div className="rec-rod-item"><b>Concluído em</b><span>{fmtDate(dataFim)}</span></div>
+                    )}
+                  </div>
+                  <div className="rec-obrigado">
+                    Obrigado pela preferência!<br/>{empresa.telefone}
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+            {os.historico_alteracoes&&(
+              <div style={{maxWidth:420,margin:'14px auto 0',fontSize:11,color:t.textSoft,padding:'10px 13px',background:t.bgSidebar,borderRadius:12,borderLeft:'3px solid #E2900A'}}>
+                <strong>Histórico de alterações:</strong>
+                <pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',margin:'4px 0 0',color:t.textSoft}}>{os.historico_alteracoes}</pre>
+              </div>
+            )}
           </>
         )}
       </div>
