@@ -5,6 +5,7 @@ import { useTheme } from '../lib/theme'
 import { useRouter } from 'next/router'
 import { TextoFormatado, MARCADORES, aplicarMarca } from '../lib/texto'
 import { gerarReciboPNG, canvasParaArquivo, baixarCanvas } from '../lib/recibo-imagem'
+import { agruparServicos } from '../lib/servicos'
 
 // Vai junto com o recibo, na mesma mensagem do WhatsApp.
 // Opcoes de garantia do selo. dias=0 significa "sem garantia".
@@ -141,6 +142,51 @@ function LinhaLista({ texto, um, varios, forte }) {
   )
 }
 
+// Servicos agrupados por aparelho: nome do aparelho vira titulo (sem bolinha)
+// e os servicos dele ficam listados embaixo.
+function LinhaServicos({ texto }) {
+  const partes = agruparServicos(texto)
+  if (!partes.length) return null
+  const temTitulo = partes.some(p => p.tipo === 'titulo')
+  const itens = partes.filter(p => p.tipo === 'item')
+
+  // sem agrupamento: continua a lista simples de antes
+  if (!temTitulo) {
+    return (
+      <div className="rec-linha">
+        <span className="rec-rot">{itens.length > 1 ? 'Serviços realizados' : 'Serviço realizado'}</span>
+        {itens.length === 1
+          ? <span className="rec-val"><TextoFormatado texto={itens[0].texto}/></span>
+          : <ul className="rec-ul">{itens.map((s, i) => <li key={i}><TextoFormatado texto={s.texto}/></li>)}</ul>}
+      </div>
+    )
+  }
+
+  // com agrupamento: titulo em destaque, servicos embaixo
+  const grupos = []
+  partes.forEach(p => {
+    if (p.tipo === 'titulo') grupos.push({ titulo: p.texto, itens: [] })
+    else {
+      if (!grupos.length) grupos.push({ titulo: null, itens: [] })
+      grupos[grupos.length - 1].itens.push(p.texto)
+    }
+  })
+
+  return (
+    <div className="rec-linha">
+      <span className="rec-rot">Serviços realizados</span>
+      {grupos.map((g, i) => (
+        <div key={i} className="rec-grupo">
+          {g.titulo && <div className="rec-grupo-tit">{g.titulo}</div>}
+          {g.itens.length > 0 && (
+            <ul className="rec-ul">{g.itens.map((s, j) => <li key={j}><TextoFormatado texto={s}/></li>)}</ul>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // CSS do recibo — usado na tela E na impressao (mesmo visual nos dois)
 const CSS_RECIBO = `
 .rec{max-width:420px;margin:0 auto;background:#fff;color:#16150f;border-radius:22px;overflow:hidden;
@@ -164,6 +210,9 @@ const CSS_RECIBO = `
 .rec-val{display:block;font-size:14px;line-height:1.45;color:#16150f;white-space:pre-wrap;word-break:break-word}
 .rec-ul{margin:2px 0 0;padding-left:17px}
 .rec-ul li{font-size:14px;line-height:1.5;margin-bottom:2px}
+.rec-grupo{margin-top:9px}
+.rec-grupo:first-child{margin-top:2px}
+.rec-grupo-tit{font-size:14px;font-weight:800;color:#16150f;letter-spacing:.01em;margin-bottom:1px}
 .rec-rodape{padding:16px 24px 22px;background:#faf9f6;border-top:1px solid #f1efe9;
             display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
 .rec-rod-item{font-size:11px}
@@ -279,7 +328,7 @@ export default function Recibo() {
       ],
       listas: [
         { itens: itensDe(form.produto), um: 'APARELHO', varios: 'APARELHOS', forte: true },
-        { itens: itensDe(form.servico), um: 'SERVIÇO REALIZADO', varios: 'SERVIÇOS REALIZADOS' },
+        { partes: agruparServicos(form.servico), um: 'SERVIÇO REALIZADO', varios: 'SERVIÇOS REALIZADOS' },
       ],
       camposFim: [
         { rotulo: 'Relato do cliente', valor: form.relato_cliente },
@@ -482,7 +531,7 @@ export default function Recibo() {
                     <Linha rotulo="Telefone"  valor={form.cliente_telefone}/>
                     <Linha rotulo="Endereço"  valor={form.cliente_endereco}/>
                     <LinhaLista texto={form.produto} um="Aparelho" varios="Aparelhos" forte/>
-                    <LinhaLista texto={form.servico} um="Serviço realizado" varios="Serviços realizados"/>
+                    <LinhaServicos texto={form.servico}/>
                     <Linha rotulo="Relato do cliente" valor={form.relato_cliente} formatado/>
                     <Linha rotulo="Diagnóstico"       valor={form.descricao} formatado/>
                   </div>
