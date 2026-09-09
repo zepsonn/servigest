@@ -5,6 +5,7 @@ import { useTheme, grad, GRADIENTES } from '../lib/theme'
 import { useRouter } from 'next/router'
 import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
 import { copiarOS } from '../lib/whatsapp'
+import { umaLinha } from '../lib/aparelhos'
 
 export default function Clientes() {
   const [clientes, setClientes] = useState([])
@@ -170,7 +171,7 @@ export default function Clientes() {
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
                   <div>
                     <div style={{fontWeight:600,color:t.text,fontSize:14}}>OS #{o.numero}</div>
-                    <div style={{fontSize:12,color:t.textSoft,marginTop:1}}>{o.produto||'—'} {o.servico?'· '+o.servico:''}</div>
+                    <div style={{fontSize:12,color:t.textSoft,marginTop:1}}>{umaLinha(o.produto)||'—'} {o.servico?'· '+umaLinha(o.servico):''}</div>
                   </div>
                   <div style={{textAlign:'right'}}>
                     <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:500,background:statusBg[o.status]||'#f0f0f0',color:statusColor[o.status]||'#666'}}>{(o.status||'').replace('_',' ')}</span>

@@ -84,7 +84,9 @@ export default function Etiquetas() {
   function limpar(){ setSel({}) }
 
   function linhasServico(o){
-    const l = String(o.servico||'').split('\n').map(x=>x.trim().replace(/^[-•]\s*/,'')).filter(Boolean)
+    // tira os cabecalhos de aparelho (linha terminada em ":") — na etiqueta
+    // o aparelho ja aparece na linha de cima
+    const l = String(o.servico||'').split('\n').map(x=>x.trim().replace(/^[-•]\s*/,'')).filter(x=>x&&!/:$/.test(x))
     if(l.length) return l
     if(o.descricao) return [o.descricao]
     if(o.relato_cliente) return [o.relato_cliente]
@@ -94,6 +96,7 @@ export default function Etiquetas() {
   function htmlEtiqueta(o){
     const T = TIPOS[tipo]
     const servs = linhasServico(o).slice(0,5)
+    const aparelhos = String(o.produto||'').split('\n').map(x=>x.trim()).filter(Boolean)
     const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     return `
       <div class="et">
@@ -103,7 +106,7 @@ export default function Etiquetas() {
         </div>
         <div class="et-cli">${esc(o.cliente_nome||'—')}</div>
         <div class="et-tel">${esc(o.cliente_telefone||'')}${o.bairro?' · '+esc(o.bairro):''}</div>
-        <div class="lin"><b>Aparelho</b><span>${esc(o.produto||'—')}</span></div>
+        <div class="lin"><b>${aparelhos.length>1?'Aparelhos':'Aparelho'}</b><span>${esc(aparelhos.join(' · ')||'—')}</span></div>
         <div class="lin et-serv"><b>Serviço</b><ul>${servs.map(s=>'<li>'+esc(s)+'</li>').join('')}</ul></div>
         <div class="et-rod">
           <div><b style="display:block;font-size:6.5pt;text-transform:uppercase;letter-spacing:.07em;color:#777">${T.campoData}</b>
@@ -201,7 +204,7 @@ export default function Etiquetas() {
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:14,fontWeight:700,color:t.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
                 <div style={{fontSize:11.5,color:t.textSoft,marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                  {[o.produto, o.bairro, fmtBR(o.data_entrada)].filter(Boolean).join(' · ')}
+                  {[String(o.produto||'').split('\n').filter(Boolean).join(' · '), o.bairro, fmtBR(o.data_entrada)].filter(Boolean).join(' · ')}
                 </div>
               </div>
               {o.status==='concluida'

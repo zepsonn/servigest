@@ -6,6 +6,7 @@ import { useTheme, GRADIENTES, grad } from '../lib/theme'
 import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
 import { copiarOS } from '../lib/whatsapp'
 import PainelConfirmar from '../components/PainelConfirmar'
+import { umaLinha } from '../lib/aparelhos'
 import Link from 'next/link'
 
 function useIsMobile(){ const [m,setM]=useState(false); useEffect(()=>{const c=()=>setM(window.innerWidth<768);c();window.addEventListener('resize',c);return()=>window.removeEventListener('resize',c)},[]);return m }
@@ -288,7 +289,7 @@ export default function Dashboard(){
     const data = os.data_entrada ? new Date(os.data_entrada+"T12:00") : null
     const corBarra = atrasado ? "#C24141" : (destaque ? t.accent : t.borderSoft)
     const bairroShort = os.bairro ? os.bairro.split(" - ").pop() : ""
-    const contexto = [os.produto||os.servico, bairroShort, os.periodo?PERIODOS[os.periodo]:null, os.usuarios?.nome].filter(Boolean).join(" · ")
+    const contexto = [umaLinha(os.produto)||os.servico, bairroShort, os.periodo?PERIODOS[os.periodo]:null, os.usuarios?.nome].filter(Boolean).join(" · ")
 
     async function copiar(e){
       e.stopPropagation()
@@ -387,7 +388,7 @@ export default function Dashboard(){
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13.5,fontWeight:700,color:t.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
                   <div style={{fontSize:11.5,color:t.textSoft,marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                    {[o.peca_pedida||o.produto, o.dias!=null?('há '+o.dias+'d'):null].filter(Boolean).join(' · ')}
+                    {[o.peca_pedida||umaLinha(o.produto), o.dias!=null?('há '+o.dias+'d'):null].filter(Boolean).join(' · ')}
                   </div>
                 </div>
                 <div style={{textAlign:'right',flexShrink:0}}>
@@ -486,7 +487,7 @@ export default function Dashboard(){
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:600,color:t.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
                     <div style={{fontSize:11.5,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                      {[o.produto||o.servico, o.bairro, o.usuarios?.nome].filter(Boolean).join(' · ')}
+                      {[umaLinha(o.produto)||o.servico, o.bairro, o.usuarios?.nome].filter(Boolean).join(' · ')}
                     </div>
                   </div>
                   <div style={{textAlign:'right',flexShrink:0}}>
@@ -533,7 +534,7 @@ export default function Dashboard(){
                         <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px'}}>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
-                            <div style={{fontSize:11,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.produto||o.servico||'—'}{o.bairro?' · '+o.bairro:''}</div>
+                            <div style={{fontSize:11,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{umaLinha(o.produto)||o.servico||'—'}{o.bairro?' · '+o.bairro:''}</div>
                           </div>
                           <div style={{textAlign:'right',flexShrink:0}}>
                             {o.periodo&&<div style={{fontSize:11,color:t.textSoft}}>{PERIODOS[o.periodo]||o.periodo}</div>}
@@ -619,7 +620,7 @@ export default function Dashboard(){
                         <div key={o.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:8,background:t.bgSidebar,marginBottom:6,border:'1px solid '+(o.status==='concluida'?'#3B6D11':t.borderSoft)}}>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
-                            <div style={{fontSize:11,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.produto||o.servico||'—'}{o.bairro?' · '+o.bairro.split(' - ').pop():''}</div>
+                            <div style={{fontSize:11,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{umaLinha(o.produto)||o.servico||'—'}{o.bairro?' · '+o.bairro.split(' - ').pop():''}</div>
                           </div>
                           <span style={{padding:'2px 8px',borderRadius:999,fontSize:10,fontWeight:600,background:o.status==='concluida'?'#EAF3DE':'#FAEEDA',color:o.status==='concluida'?'#3B6D11':'#854F0B',flexShrink:0}}>
                             {o.status==='concluida'?'Concluído':'Pendente'}
@@ -862,7 +863,7 @@ export default function Dashboard(){
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
                 <div style={{flex:1,minWidth:0,marginRight:8}}>
                   <div style={{fontWeight:700,color:t.text,fontSize:16}}>{o.cliente_nome||'—'}</div>
-                  <div style={{fontSize:13,color:t.textSoft,marginTop:2}}>{o.produto||o.servico||'—'}</div>
+                  <div style={{fontSize:13,color:t.textSoft,marginTop:2}}>{umaLinha(o.produto)||o.servico||'—'}</div>
                 </div>
                 <div style={{textAlign:'right',flexShrink:0}}>
                   {o.periodo&&<div style={{fontSize:12,fontWeight:600,color:t.accent}}>{PERIODOS[o.periodo]||o.periodo}</div>}
@@ -895,7 +896,7 @@ export default function Dashboard(){
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
                 <div style={{flex:1,minWidth:0,marginRight:8}}>
                   <div style={{fontWeight:600,color:t.text,fontSize:15}}>{o.cliente_nome||'—'}</div>
-                  <div style={{fontSize:13,color:t.textSoft,marginTop:2}}>{o.produto||o.servico||'—'}</div>
+                  <div style={{fontSize:13,color:t.textSoft,marginTop:2}}>{umaLinha(o.produto)||o.servico||'—'}</div>
                 </div>
                 <div style={{textAlign:'right',flexShrink:0}}>
                   {o.periodo&&<div style={{fontSize:12,fontWeight:600,color:t.textSoft}}>{PERIODOS[o.periodo]||o.periodo}</div>}
@@ -928,7 +929,7 @@ export default function Dashboard(){
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
                   <div style={{flex:1,minWidth:0,marginRight:8}}>
                     <div style={{fontWeight:600,color:t.text,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
-                    <div style={{fontSize:12,color:t.textSoft,marginTop:2}}>{o.produto||o.servico||'—'}{o.bairro?' · '+o.bairro.split(' - ').pop():''}</div>
+                    <div style={{fontSize:12,color:t.textSoft,marginTop:2}}>{umaLinha(o.produto)||o.servico||'—'}{o.bairro?' · '+o.bairro.split(' - ').pop():''}</div>
                   </div>
                   <div style={{textAlign:'right',flexShrink:0}}>
                     <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:10,fontWeight:600,background:'#EAF3DE',color:'#3B6D11'}}>

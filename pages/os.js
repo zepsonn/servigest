@@ -1,14 +1,15 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
 import { useTheme } from '../lib/theme'
 import { useRouter } from 'next/router'
-import { TextoFormatado, MARCADORES, aplicarMarca } from '../lib/texto'
+import { TextoFormatado } from '../lib/texto'
 import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
 import { copiarOS } from '../lib/whatsapp'
 import PainelConfirmar from '../components/PainelConfirmar'
 import PainelSinal from '../components/PainelSinal'
-import { SERVICOS_PADRAO, GRUPOS_SERVICO } from '../lib/servicos'
+import EditorAparelhos from '../components/EditorAparelhos'
+import { APARELHO0, lerAparelhos, camposDaOS, somaAparelhos } from '../lib/aparelhos'
 
 function useIsMobile(){ const [m,setM]=useState(false); useEffect(()=>{const c=()=>setM(window.innerWidth<768);c();window.addEventListener('resize',c);return()=>window.removeEventListener('resize',c)},[]);return m }
 
@@ -47,7 +48,8 @@ const BAIRROS_CURITIBA = [
 
 const FORM0 = {
   cliente_id:'', cliente_nome:'', cliente_telefone:'', cliente_endereco:'',
-  bairro:'', produto:'', servico:'', relato_cliente:'', descricao:'', valor:0,
+  bairro:'', produto:'', servico:'', aparelhos:[{...APARELHO0}],
+  relato_cliente:'', descricao:'', valor:0,
   status:'em_andamento', periodo:'', data_entrada:new Date().toISOString().split('T')[0],
   data_conclusao:'', tecnico_id:'', observacoes:''
 }
@@ -70,78 +72,6 @@ function FG({label,value,onChange,t,type,textarea,placeholder}){
   return <div style={{marginBottom:12}}>
     <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>{label}</label>
     {textarea?<textarea style={st} value={value} placeholder={placeholder} onChange={e=>onChange(e.target.value)}/>:<input type={type||'text'} style={st} value={value} placeholder={placeholder} onChange={e=>onChange(e.target.value)}/>}
-  </div>
-}
-
-// campo de servico com quebra de linha + sugestoes do que ja foi feito antes.
-// FORA do componente principal (senao o React recria e perde o foco).
-function CampoServico({f,setF,t,sugestoes}){
-  const [aberto,setAberto]=useState(false)
-  const ref=useRef(null)
-  const v=f.servico||''
-  function marcar(marca){
-    const el=ref.current; if(!el) return
-    const r=aplicarMarca(v,el.selectionStart,el.selectionEnd,marca)
-    setF({...f,servico:r.valor})
-    setTimeout(()=>{el.focus();el.setSelectionRange(r.inicio,r.fim)},0)
-  }
-  const linhas=v.split('\n')
-  const atual=(linhas[linhas.length-1]||'').trim().toLowerCase()
-  // junta o historico da empresa com a lista padrao (sem repetir)
-  const todas=[...new Set([...(sugestoes||[]), ...SERVICOS_PADRAO])]
-  const lista=todas.filter(s=>!atual||s.toLowerCase().includes(atual)).filter(s=>s.toLowerCase()!==atual).slice(0,10)
-  // quando o campo esta vazio, mostra os grupos pra escolher
-  const mostrarGrupos = !atual && !v.trim()
-  function escolher(s){
-    const l=v.split('\n'); l[l.length-1]=s
-    setF({...f,servico:l.join('\n')+'\n'}); setAberto(true)
-  }
-  const st={width:'100%',padding:'9px 10px',borderRadius:8,border:'1px solid '+t.border,fontSize:14,fontFamily:'inherit',background:t.bgInput,color:t.text,minHeight:76,resize:'vertical',lineHeight:1.5}
-  return <div style={{marginBottom:12}}>
-    <label style={{display:'block',fontSize:11,color:t.textSoft,fontWeight:500,marginBottom:3}}>Serviço realizado <span style={{color:t.textSoft}}>(uma linha por serviço)</span></label>
-    <div style={{display:'flex',gap:5,marginBottom:5,alignItems:'center'}}>
-      {MARCADORES.map(m=>(
-        <button key={m.chave} type="button" title={m.chave} aria-label={m.chave} className="sg-btn"
-          onMouseDown={e=>e.preventDefault()} onClick={()=>marcar(m.marca)}
-          style={{width:34,height:34,borderRadius:'50%',border:'1px solid '+t.border,background:t.bgCard,color:t.text,
-                  cursor:'pointer',fontFamily:'inherit',display:'inline-flex',alignItems:'center',justifyContent:'center',padding:0}}>
-          <Ico n={m.chave} size={15}/>
-        </button>
-      ))}
-      <span style={{fontSize:10.5,color:t.textSoft}}>selecione o texto e clique</span>
-    </div>
-    <textarea ref={ref} style={st} value={v} placeholder={'Ex:\nTroca de motor\nCarga de gás'}
-      onChange={e=>setF({...f,servico:e.target.value})}
-      onFocus={()=>setAberto(true)} onBlur={()=>setTimeout(()=>setAberto(false),180)}/>
-    {aberto&&mostrarGrupos&&(
-      <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:9}}>
-        {GRUPOS_SERVICO.map(g=>(
-          <div key={g.grupo}>
-            <div style={{fontSize:9.5,fontWeight:800,textTransform:'uppercase',letterSpacing:'.06em',color:t.textSoft,marginBottom:5,display:'flex',alignItems:'center',gap:6}}>
-              <span style={{width:8,height:8,borderRadius:99,background:g.cor,display:'inline-block'}}/>{g.grupo}
-            </div>
-            <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-              {g.itens.slice(0,8).map(s=>(
-                <button key={s} type="button" onMouseDown={e=>e.preventDefault()} onClick={()=>escolher(s)}
-                  style={{padding:'5px 11px',borderRadius:999,border:'1px solid '+t.border,background:t.bgCard,color:t.text,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    )}
-    {aberto&&!mostrarGrupos&&lista.length>0&&(
-      <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:6}}>
-        {lista.map(s=>(
-          <button key={s} type="button" onMouseDown={e=>e.preventDefault()} onClick={()=>escolher(s)}
-            style={{padding:'5px 11px',borderRadius:999,border:'1px solid '+t.border,background:t.bgCard,color:t.text,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>
-            + {s}
-          </button>
-        ))}
-      </div>
-    )}
   </div>
 }
 
@@ -168,10 +98,8 @@ function FormOS({f,setF,t,agendamentos,tecnicos,servicosSalvos}){
       </div>
     </div>
 
-    <div style={sec}>SERVIÇO</div>
-    <FG label="Aparelho / Equipamento" value={f.produto||''} onChange={v=>setF({...f,produto:v})} t={t} textarea
-        placeholder={'Um por linha. Ex:\nGeladeira Brastemp BRM44\nLavadora Consul 11kg'}/>
-    <CampoServico f={f} setF={setF} t={t} sugestoes={servicosSalvos||[]}/>
+    <div style={sec}>APARELHOS E SERVIÇOS</div>
+    <EditorAparelhos lista={f.aparelhos} onChange={v=>setF({...f,aparelhos:v})} t={t} sugestoes={servicosSalvos||[]} comValor/>
     <FG label="Relato do cliente (o que ele falou)" value={f.relato_cliente||''} onChange={v=>setF({...f,relato_cliente:v})} t={t} textarea placeholder="Ex: Cliente disse que a geladeira não está gelando e faz barulho"/>
     <FG label="Diagnóstico / Descrição" value={f.descricao||''} onChange={v=>setF({...f,descricao:v})} t={t} textarea/>
 
@@ -190,7 +118,15 @@ function FormOS({f,setF,t,agendamentos,tecnicos,servicosSalvos}){
 
     <div style={sec}>DETALHES</div>
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-      <FG label="Valor (R$)" value={f.valor||0} onChange={v=>setF({...f,valor:v})} t={t} type="number"/>
+      <div>
+        <FG label="Valor total (R$)" value={f.valor||0} onChange={v=>setF({...f,valor:v})} t={t} type="number"/>
+        {(()=>{ const s=somaAparelhos(f.aparelhos); if(!(s>0)||Number(f.valor)===s) return null
+          return <button type="button" className="sg-btn" onClick={()=>setF({...f,valor:s})}
+            style={{marginTop:-6,marginBottom:12,padding:'6px 12px',borderRadius:999,border:'1px dashed '+t.border,
+                    background:'transparent',color:t.accent,fontSize:11.5,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+            Usar a soma dos aparelhos ({s.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})})
+          </button> })()}
+      </div>
       <div style={{marginBottom:12}}>
         <label style={lbl}>Status</label>
         <select style={inp} value={f.status||'em_andamento'} onChange={e=>setF({...f,status:e.target.value})}>
@@ -253,7 +189,9 @@ export default function OS() {
   async function salvar(){
     if(!form.cliente_nome||!form.data_entrada){alert('Preencha o nome do cliente e a data');return}
     const{agendamento_id,...formData}=form
-    await supabase.from('ordens_servico').insert([{...formData,valor:Number(form.valor)||0,cliente_id:form.cliente_id||null,tecnico_id:form.tecnico_id||null,data_conclusao:form.data_conclusao||null,bairro:form.bairro||null,periodo:form.periodo||null}])
+    // camposDaOS monta o jsonb `aparelhos` E os campos de texto produto/servico
+    // (o resto do sistema continua lendo o texto, entao nada quebra)
+    await supabase.from('ordens_servico').insert([{...formData,...camposDaOS(form.aparelhos),valor:Number(form.valor)||0,cliente_id:form.cliente_id||null,tecnico_id:form.tecnico_id||null,data_conclusao:form.data_conclusao||null,bairro:form.bairro||null,periodo:form.periodo||null}])
     setModal(false); setForm(FORM0); loadOS()
   }
 
@@ -261,7 +199,7 @@ export default function OS() {
     await supabase.from('ordens_servico').update({
       cliente_nome:editForm.cliente_nome, cliente_telefone:editForm.cliente_telefone,
       cliente_endereco:editForm.cliente_endereco, bairro:editForm.bairro,
-      produto:editForm.produto, servico:editForm.servico,
+      ...camposDaOS(editForm.aparelhos),
       relato_cliente:editForm.relato_cliente, descricao:editForm.descricao,
       valor:Number(editForm.valor)||0, status:editForm.status, periodo:editForm.periodo,
       data_entrada:editForm.data_entrada, data_conclusao:editForm.data_conclusao||null,
@@ -344,8 +282,9 @@ export default function OS() {
                 </div>
                 {/* produto */}
                 <div>
-                  <div style={{fontSize:13,color:t.text}}>{o.produto||'—'}</div>
-                  <div style={{fontSize:11,color:t.textSoft}}>{String(o.servico||'').split('\n').filter(Boolean).join(' · ')}</div>
+                  <div style={{fontSize:13,color:t.text}}>{String(o.produto||'').split('\n').filter(Boolean).join(' · ')||'—'}</div>
+                  {/* tira os cabecalhos de aparelho (linha terminada em ":") do resumo */}
+                  <div style={{fontSize:11,color:t.textSoft}}>{String(o.servico||'').split('\n').map(s=>s.trim()).filter(s=>s&&!/:$/.test(s)).join(' · ')}</div>
                 </div>
                 {/* bairro */}
                 <div style={{fontSize:12,color:t.textSoft}}>{o.bairro||'—'}</div>
@@ -417,7 +356,7 @@ export default function OS() {
                       {o.status==='aguardando_peca'?'Peça pedida':'Peça sob pedido'}
                     </BotaoPill>
                   )}
-                  <BotaoIco n="editar"   t={t} titulo="Editar OS"          onClick={()=>{setEditForm({...o,tecnico_id:o.tecnico_id||''});setEditModal(o);setDetalhe(null)}}/>
+                  <BotaoIco n="editar"   t={t} titulo="Editar OS"          onClick={()=>{setEditForm({...o,tecnico_id:o.tecnico_id||'',aparelhos:lerAparelhos(o)});setEditModal(o);setDetalhe(null)}}/>
                   <BotaoIco n="recibo"   t={t} titulo="Gerar recibo"       onClick={()=>router.push('/recibo?os='+o.id)}/>
                   <BotaoIco n={copiadoId===o.id?'confirmar':'whatsapp'} t={t} tom={copiadoId===o.id?'sucesso':'zap'}
                     titulo={copiadoId===o.id?'Copiado!':'Copiar p/ WhatsApp'} onClick={()=>copiarParaWhatsapp(o)}/>
