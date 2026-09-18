@@ -8,6 +8,7 @@ import { gerarReciboPNG, canvasParaArquivo, baixarCanvas } from '../lib/recibo-i
 import { agruparServicos } from '../lib/servicos'
 import EditorAparelhos from '../components/EditorAparelhos'
 import { itensDe, lerAparelhos, camposDaOS, somaAparelhos } from '../lib/aparelhos'
+import { NumOS } from '../lib/icones'
 
 // Vai junto com o recibo, na mesma mensagem do WhatsApp.
 // Opcoes de garantia do selo. dias=0 significa "sem garantia".
@@ -431,7 +432,10 @@ export default function Recibo() {
             {editando ? (
               /* ---------- MODO EDICAO: formulario simples ---------- */
               <div style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:20,boxShadow:t.shadow,padding:20,maxWidth:520,margin:'0 auto'}}>
-                <div style={{fontSize:15,fontWeight:700,color:t.text,marginBottom:14}}>Editar campos do recibo</div>
+                <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:14}}>
+                  <span style={{fontSize:15,fontWeight:700,color:t.text}}>Editar campos do recibo</span>
+                  <NumOS n={form.numero} t={t} tom="destaque" size={12}/>
+                </div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
                   <EditField campo="cliente_nome" label="Nome"/>
                   <EditField campo="cliente_telefone" label="Telefone"/>

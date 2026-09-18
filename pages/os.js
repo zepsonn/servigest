@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useTheme } from '../lib/theme'
 import { useRouter } from 'next/router'
 import { TextoFormatado } from '../lib/texto'
-import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
+import { Ico, BotaoIco, BotaoPill, NumOS } from '../lib/icones'
 import { copiarOS } from '../lib/whatsapp'
 import PainelConfirmar from '../components/PainelConfirmar'
 import PainelSinal from '../components/PainelSinal'
@@ -276,9 +276,12 @@ export default function OS() {
               <div style={{width:4,alignSelf:'stretch',background:o.status==='concluida'?'#3B6D11':'#854F0B',flexShrink:0,borderRadius:'12px 0 0 12px'}}/>
               <div style={{flex:1,padding:'12px 14px',display:'grid',gridTemplateColumns:isMobile?'1fr 1fr':'2fr 2fr 1fr 1fr 1fr',gap:8,alignItems:'center'}}>
                 {/* cliente */}
-                <div>
-                  <div style={{fontWeight:600,color:t.text,fontSize:14}}>{o.cliente_nome||'—'}</div>
-                  <div style={{fontSize:11,color:t.textSoft,marginTop:1}}>{o.cliente_telefone||''}</div>
+                <div style={{minWidth:0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:7,minWidth:0}}>
+                    <NumOS n={o.numero} t={t}/>
+                    <span style={{fontWeight:600,color:t.text,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</span>
+                  </div>
+                  <div style={{fontSize:11,color:t.textSoft,marginTop:2}}>{o.cliente_telefone||''}</div>
                 </div>
                 {/* produto */}
                 <div>

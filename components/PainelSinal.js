@@ -102,7 +102,7 @@ export default function PainelSinal({ os, t, onFechar, onSalvo }) {
                 textTransform:'uppercase', letterSpacing:'.05em' }
 
   return (
-    <Painel aberto={!!os} onFechar={onFechar} t={t} titulo="Peça sob pedido"
+    <Painel aberto={!!os} onFechar={onFechar} t={t} titulo="Peça sob pedido" numero={os&&os.numero}
       subtitulo={os ? (os.cliente_nome + ' · ' + (os.produto || '—')) : ''}>
       {os && (<>
         <div style={{marginBottom:14}}>

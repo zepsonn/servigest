@@ -3,7 +3,7 @@ import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
 import { useTheme, grad, GRADIENTES } from '../lib/theme'
 import { useRouter } from 'next/router'
-import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
+import { Ico, BotaoIco, BotaoPill, NumOS } from '../lib/icones'
 import { copiarOS } from '../lib/whatsapp'
 import { umaLinha } from '../lib/aparelhos'
 
@@ -170,8 +170,8 @@ export default function Clientes() {
               <div key={o.id} style={{background:t.bgCard,border:'1px solid '+(o.status==='concluida'?'#3B6D11':t.border),borderRadius:16,boxShadow:t.shadow,padding:'14px 16px'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
                   <div>
-                    <div style={{fontWeight:600,color:t.text,fontSize:14}}>OS #{o.numero}</div>
-                    <div style={{fontSize:12,color:t.textSoft,marginTop:1}}>{umaLinha(o.produto)||'—'} {o.servico?'· '+umaLinha(o.servico):''}</div>
+                    <NumOS n={o.numero} t={t} tom="destaque" size={12}/>
+                    <div style={{fontSize:12,color:t.textSoft,marginTop:5}}>{umaLinha(o.produto)||'—'} {o.servico?'· '+umaLinha(o.servico):''}</div>
                   </div>
                   <div style={{textAlign:'right'}}>
                     <span style={{display:'inline-block',padding:'2px 8px',borderRadius:999,fontSize:11,fontWeight:500,background:statusBg[o.status]||'#f0f0f0',color:statusColor[o.status]||'#666'}}>{(o.status||'').replace('_',' ')}</span>

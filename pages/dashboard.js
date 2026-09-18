@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
 import { useTheme, GRADIENTES, grad } from '../lib/theme'
-import { Ico, BotaoIco, BotaoPill } from '../lib/icones'
+import { Ico, BotaoIco, BotaoPill, NumOS } from '../lib/icones'
 import { copiarOS } from '../lib/whatsapp'
 import PainelConfirmar from '../components/PainelConfirmar'
 import { umaLinha } from '../lib/aparelhos'
@@ -62,7 +62,8 @@ export default function Dashboard(){
   const [calSel,setCalSel]=useState(()=>new Date().toISOString().split('T')[0])
   const [calCarregando,setCalCarregando]=useState(false)
   const [tecFiltroId,setTecFiltroId]=useState('')
-  const [tecFiltroData,setTecFiltroData]=useState(new Date().toISOString().split('T')[0])
+  // vazio = mostra tudo que o tecnico ja fez (padrao)
+  const [tecFiltroData,setTecFiltroData]=useState('')
   const [tecOs,setTecOs]=useState([])
   const [tecBuscando,setTecBuscando]=useState(false)
   const [buscandoFiltro,setBuscandoFiltro]=useState(false)
@@ -238,14 +239,16 @@ export default function Dashboard(){
     setBuscandoFiltro(false)
   }
 
+  // Sem data = TUDO que o tecnico ja fez (o gestor pediu pra ver o historico
+  // inteiro de cada um). Com data = so aquele dia.
   async function buscarTecnico(tecId, data){
-    if(!tecId||!data){setTecOs([]);return}
+    if(!tecId){setTecOs([]);return}
     setTecBuscando(true)
-    const {data:os}=await supabase.from('ordens_servico')
-      .select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,valor,tecnico_id,usuarios(nome)')
+    let q=supabase.from('ordens_servico')
+      .select('id,numero,cliente_nome,bairro,produto,servico,periodo,status,data_entrada,data_conclusao,valor,valor_mao_obra,eh_taxa,tecnico_id,usuarios(nome,comissao_percentual)')
       .eq('tecnico_id',tecId)
-      .eq('data_entrada',data)
-      .order('periodo')
+    if(data) q=q.eq('data_entrada',data)
+    const {data:os}=await q.order('data_entrada',{ascending:false}).order('periodo').limit(600)
     setTecOs(os||[])
     setTecBuscando(false)
   }
@@ -324,8 +327,11 @@ export default function Dashboard(){
           </div>
           {/* cliente + contexto */}
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontWeight:700,color:t.text,fontSize:14.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{os.cliente_nome||"—"}</div>
-            <div style={{fontSize:11.5,color:t.textSoft,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{contexto||"—"}</div>
+            <div style={{display:"flex",alignItems:"center",gap:7,minWidth:0}}>
+              <NumOS n={os.numero} t={t}/>
+              <span style={{fontWeight:700,color:t.text,fontSize:14.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{os.cliente_nome||"—"}</span>
+            </div>
+            <div style={{fontSize:11.5,color:t.textSoft,marginTop:3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{contexto||"—"}</div>
           </div>
           {/* acoes */}
           <div style={{display:"flex",alignItems:"center",gap:7,flexShrink:0}}>
@@ -386,7 +392,10 @@ export default function Dashboard(){
               <div key={o.id} style={{display:'flex',alignItems:'center',gap:11,padding:'11px 18px',borderBottom:'1px solid '+t.borderSoft}}>
                 <div style={{width:3,alignSelf:'stretch',borderRadius:99,background:atrasada?'#C24141':'#2F6FED',flexShrink:0}}/>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:13.5,fontWeight:700,color:t.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
+                  <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
+                    <NumOS n={o.numero} t={t} size={10}/>
+                    <span style={{fontSize:13.5,fontWeight:700,color:t.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</span>
+                  </div>
                   <div style={{fontSize:11.5,color:t.textSoft,marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                     {[o.peca_pedida||umaLinha(o.produto), o.dias!=null?('há '+o.dias+'d'):null].filter(Boolean).join(' · ')}
                   </div>
@@ -485,8 +494,11 @@ export default function Dashboard(){
                 <div key={o.id} className="sg-card" style={{background:t.bgCard,border:'1px solid '+(o.status==='concluida'?'#3B6D11':t.borderSoft),borderRadius:12,padding:'10px 12px',display:'flex',alignItems:'center',gap:10}}>
                   <div style={{width:4,alignSelf:'stretch',borderRadius:99,background:o.status==='concluida'?'#3B6D11':t.accent,flexShrink:0}}/>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:13,fontWeight:600,color:t.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
-                    <div style={{fontSize:11.5,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
+                      <NumOS n={o.numero} t={t} size={10}/>
+                      <span style={{fontSize:13,fontWeight:600,color:t.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</span>
+                    </div>
+                    <div style={{fontSize:11.5,color:t.textSoft,marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                       {[umaLinha(o.produto)||o.servico, o.bairro, o.usuarios?.nome].filter(Boolean).join(' · ')}
                     </div>
                   </div>
@@ -533,8 +545,11 @@ export default function Dashboard(){
                       <div key={o.id} style={{borderRadius:10,marginBottom:8,background:t.bgSidebar,border:'1px solid '+(o.status==='concluida'?'#3B6D11':t.borderSoft)}}>
                         <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px'}}>
                           <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
-                            <div style={{fontSize:11,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{umaLinha(o.produto)||o.servico||'—'}{o.bairro?' · '+o.bairro:''}</div>
+                            <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
+                              <NumOS n={o.numero} t={t} size={10}/>
+                              <span style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</span>
+                            </div>
+                            <div style={{fontSize:11,color:t.textSoft,marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{umaLinha(o.produto)||o.servico||'—'}{o.bairro?' · '+o.bairro:''}</div>
                           </div>
                           <div style={{textAlign:'right',flexShrink:0}}>
                             {o.periodo&&<div style={{fontSize:11,color:t.textSoft}}>{PERIODOS[o.periodo]||o.periodo}</div>}
@@ -575,13 +590,43 @@ export default function Dashboard(){
       )
     }
 
-    // SERVIÇOS POR TÉCNICO HOJE
+    // SERVIÇOS POR TÉCNICO
+    // Sem data escolhida mostra TUDO que o tecnico ja fez (agrupado por dia,
+    // mais recente primeiro). Com data, mostra so aquele dia por periodo.
     if(card.id==='por_tecnico'){
       const PERIODO_ORDEM={manha:0,tarde:1,noite:2}
-      const lista=[...tecOs].sort((a,b)=>(PERIODO_ORDEM[a.periodo]??3)-(PERIODO_ORDEM[b.periodo]??3))
-      const grupos={manha:[],tarde:[],noite:[],sem:[]}
-      lista.forEach(o=>{ grupos[o.periodo||'sem'] ? grupos[o.periodo||'sem'].push(o) : grupos.sem.push(o) })
       const tecNome=tecnicos.find(tt=>tt.id===tecFiltroId)?.nome
+      const porDia=!tecFiltroData
+
+      // resumo do que aparece na tela
+      const resumo=tecOs.reduce((a,o)=>{
+        const pct=o.usuarios?.comissao_percentual||0
+        const maoObra=Number(o.valor_mao_obra||0)
+        const ganhou=o.eh_taxa?(pct>0?maoObra/2:0):(pct>0?maoObra*pct/100:0)
+        a.total+=Number(o.valor||0); a.comissao+=ganhou
+        if(o.status==='concluida') a.feitos++; else a.abertos++
+        return a
+      },{total:0,comissao:0,feitos:0,abertos:0})
+
+      // monta os grupos: por dia (tudo) ou por periodo (data escolhida)
+      let grupos=[]
+      if(porDia){
+        const mapa={}
+        ;[...tecOs].sort((a,b)=>String(b.data_entrada||'').localeCompare(String(a.data_entrada||'')))
+          .forEach(o=>{ const d=o.data_entrada||'sem'; (mapa[d]=mapa[d]||[]).push(o) })
+        grupos=Object.entries(mapa).map(([d,itens])=>({
+          chave:d,
+          rotulo:d==='sem'?'Sem data':new Date(d+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric',weekday:'short'}),
+          itens,
+        }))
+      }else{
+        const p={manha:[],tarde:[],noite:[],sem:[]}
+        ;[...tecOs].sort((a,b)=>(PERIODO_ORDEM[a.periodo]??3)-(PERIODO_ORDEM[b.periodo]??3))
+          .forEach(o=>{ (p[o.periodo]||p.sem).push(o) })
+        grupos=['manha','tarde','noite','sem'].filter(k=>p[k].length)
+          .map(k=>({chave:k,rotulo:k==='sem'?'Sem período':PERIODOS[k],itens:p[k]}))
+      }
+
       return (
         <div key={card.id} {...dragProps} style={baseStyle}>
           {edit&&<EditOverlay card={card} t={t} onRemove={()=>remover(card.id)} onTam={tam=>setTam(card.id,tam)}/>}
@@ -590,46 +635,80 @@ export default function Dashboard(){
           </div>
           <div style={{padding:'14px 18px'}}>
             {/* CONTROLES */}
-            <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
+            <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
               <select value={tecFiltroId} onChange={e=>{setTecFiltroId(e.target.value);buscarTecnico(e.target.value,tecFiltroData)}}
                 style={{flex:1,minWidth:140,padding:'9px 12px',borderRadius:8,border:'1px solid '+t.border,background:t.bgInput,color:t.text,fontSize:13,fontFamily:'inherit',cursor:'pointer'}}>
                 <option value="">Selecione um técnico...</option>
                 {tecnicos.map(tc=><option key={tc.id} value={tc.id}>{tc.nome}</option>)}
               </select>
+              <button onClick={()=>{setTecFiltroData('');if(tecFiltroId)buscarTecnico(tecFiltroId,'')}}
+                className="sg-btn"
+                style={{padding:'9px 14px',borderRadius:8,cursor:'pointer',fontFamily:'inherit',fontSize:12.5,fontWeight:700,
+                        border:'1px solid '+(porDia?t.accent:t.border),
+                        background:porDia?t.accentSoft:t.bgInput,color:porDia?t.accentDark:t.textSoft}}>
+                Tudo
+              </button>
               <input type="date" value={tecFiltroData} onChange={e=>{setTecFiltroData(e.target.value);if(tecFiltroId)buscarTecnico(tecFiltroId,e.target.value)}}
-                style={{padding:'9px 12px',borderRadius:8,border:'1px solid '+t.border,background:t.bgInput,color:t.text,fontSize:13,fontFamily:'inherit',cursor:'pointer'}}/>
+                style={{padding:'9px 12px',borderRadius:8,border:'1px solid '+(porDia?t.border:t.accent),background:t.bgInput,color:t.text,fontSize:13,fontFamily:'inherit',cursor:'pointer'}}/>
             </div>
 
             {/* RESULTADO */}
             {!tecFiltroId&&<div style={{fontSize:13,color:t.textSoft,textAlign:'center',padding:20}}>Selecione um técnico para ver os serviços.</div>}
             {tecFiltroId&&tecBuscando&&<div style={{fontSize:13,color:t.textSoft,textAlign:'center',padding:20}}>Buscando...</div>}
-            {tecFiltroId&&!tecBuscando&&lista.length===0&&<div style={{fontSize:13,color:t.textSoft,textAlign:'center',padding:20}}>Nenhum serviço para {tecNome} nesta data.</div>}
-            {tecFiltroId&&!tecBuscando&&lista.length>0&&(
+            {tecFiltroId&&!tecBuscando&&tecOs.length===0&&(
+              <div style={{fontSize:13,color:t.textSoft,textAlign:'center',padding:20}}>
+                Nenhum serviço para {tecNome}{porDia?'.':' nesta data.'}
+              </div>
+            )}
+            {tecFiltroId&&!tecBuscando&&tecOs.length>0&&(
               <>
-                <div style={{fontSize:11,fontWeight:700,color:t.accent,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:12}}>
-                  {tecNome} — {lista.length} serviço{lista.length>1?'s':''}
+                <div style={{fontSize:11,fontWeight:700,color:t.accent,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:10}}>
+                  {tecNome} — {tecOs.length} serviço{tecOs.length>1?'s':''}{porDia?' no total':''}
                 </div>
-                {['manha','tarde','noite','sem'].map(per=>{
-                  if(!grupos[per]||grupos[per].length===0) return null
-                  return (
-                    <div key={per} style={{marginBottom:14}}>
-                      <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:t.textSoft,letterSpacing:'.06em',marginBottom:6}}>
-                        {per==='sem'?'Sem período':PERIODOS[per]}
+
+                {/* RESUMO */}
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(88px,1fr))',gap:8,marginBottom:14}}>
+                  {[['Concluídos',resumo.feitos,'#2E7A3E'],
+                    ['Em aberto',resumo.abertos,'#9A5F0C'],
+                    ['Faturado',fmt(resumo.total),t.text],
+                    ['Comissão',fmt(resumo.comissao),t.accent]].map(([l,v,cor])=>(
+                    <div key={l} style={{background:t.bgSidebar,border:'1px solid '+t.borderSoft,borderRadius:10,padding:'9px 11px'}}>
+                      <div style={{fontSize:9,fontWeight:800,textTransform:'uppercase',letterSpacing:'.05em',color:t.textSoft,marginBottom:3}}>{l}</div>
+                      <div style={{fontSize:14,fontWeight:800,color:cor,fontVariantNumeric:'tabular-nums'}}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{maxHeight:porDia?440:undefined,overflow:porDia?'auto':undefined,margin:porDia?'0 -4px':undefined,padding:porDia?'0 4px':undefined}}>
+                  {grupos.map(g=>(
+                    <div key={g.chave} style={{marginBottom:14}}>
+                      <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',color:t.textSoft,letterSpacing:'.06em',marginBottom:6,
+                                   display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                        <span>{g.rotulo}</span>
+                        <span style={{fontWeight:800,color:t.textSoft}}>{fmt(g.itens.reduce((s,o)=>s+Number(o.valor||0),0))}</span>
                       </div>
-                      {grupos[per].map(o=>(
+                      {g.itens.map(o=>(
                         <div key={o.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:8,background:t.bgSidebar,marginBottom:6,border:'1px solid '+(o.status==='concluida'?'#3B6D11':t.borderSoft)}}>
                           <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
-                            <div style={{fontSize:11,color:t.textSoft,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{umaLinha(o.produto)||o.servico||'—'}{o.bairro?' · '+o.bairro.split(' - ').pop():''}</div>
+                            <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
+                              <NumOS n={o.numero} t={t} size={10}/>
+                              <span style={{fontWeight:600,color:t.text,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</span>
+                            </div>
+                            <div style={{fontSize:11,color:t.textSoft,marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                              {[umaLinha(o.produto)||o.servico||'—', o.bairro?o.bairro.split(' - ').pop():null, porDia&&o.periodo?PERIODOS[o.periodo]:null].filter(Boolean).join(' · ')}
+                            </div>
                           </div>
+                          {Number(o.valor)>0&&(
+                            <div style={{fontSize:12.5,fontWeight:700,color:t.text,fontVariantNumeric:'tabular-nums',flexShrink:0}}>{fmt(o.valor)}</div>
+                          )}
                           <span style={{padding:'2px 8px',borderRadius:999,fontSize:10,fontWeight:600,background:o.status==='concluida'?'#EAF3DE':'#FAEEDA',color:o.status==='concluida'?'#3B6D11':'#854F0B',flexShrink:0}}>
                             {o.status==='concluida'?'Concluído':'Pendente'}
                           </span>
                         </div>
                       ))}
                     </div>
-                  )
-                })}
+                  ))}
+                </div>
               </>
             )}
           </div>
@@ -862,7 +941,8 @@ export default function Dashboard(){
             <div key={o.id} style={{background:t.bgCard,border:'1px solid '+t.accent,borderRadius:12,padding:'14px',marginBottom:10,boxShadow:t.shadow}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
                 <div style={{flex:1,minWidth:0,marginRight:8}}>
-                  <div style={{fontWeight:700,color:t.text,fontSize:16}}>{o.cliente_nome||'—'}</div>
+                  <NumOS n={o.numero} t={t} tom="destaque" size={12}/>
+                  <div style={{fontWeight:700,color:t.text,fontSize:16,marginTop:5}}>{o.cliente_nome||'—'}</div>
                   <div style={{fontSize:13,color:t.textSoft,marginTop:2}}>{umaLinha(o.produto)||o.servico||'—'}</div>
                 </div>
                 <div style={{textAlign:'right',flexShrink:0}}>
@@ -895,7 +975,8 @@ export default function Dashboard(){
             <div key={o.id} style={{background:t.bgCard,border:'1px solid '+t.border,borderRadius:12,padding:'14px',marginBottom:10,boxShadow:t.shadow}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
                 <div style={{flex:1,minWidth:0,marginRight:8}}>
-                  <div style={{fontWeight:600,color:t.text,fontSize:15}}>{o.cliente_nome||'—'}</div>
+                  <NumOS n={o.numero} t={t} size={11}/>
+                  <div style={{fontWeight:600,color:t.text,fontSize:15,marginTop:5}}>{o.cliente_nome||'—'}</div>
                   <div style={{fontSize:13,color:t.textSoft,marginTop:2}}>{umaLinha(o.produto)||o.servico||'—'}</div>
                 </div>
                 <div style={{textAlign:'right',flexShrink:0}}>
@@ -928,7 +1009,10 @@ export default function Dashboard(){
               <div key={o.id} style={{background:t.bgCard,border:'1px solid #DCEAD0',borderRadius:12,padding:'12px 14px',marginBottom:8,boxShadow:t.shadow}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
                   <div style={{flex:1,minWidth:0,marginRight:8}}>
-                    <div style={{fontWeight:600,color:t.text,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</div>
+                    <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
+                      <NumOS n={o.numero} t={t} size={10}/>
+                      <span style={{fontWeight:600,color:t.text,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{o.cliente_nome||'—'}</span>
+                    </div>
                     <div style={{fontSize:12,color:t.textSoft,marginTop:2}}>{umaLinha(o.produto)||o.servico||'—'}{o.bairro?' · '+o.bairro.split(' - ').pop():''}</div>
                   </div>
                   <div style={{textAlign:'right',flexShrink:0}}>

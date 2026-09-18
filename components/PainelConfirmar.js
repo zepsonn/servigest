@@ -96,7 +96,7 @@ export default function PainelConfirmar({ os, t, onFechar, onSalvo }) {
   const aReceber = Math.max(total - sinal, 0)
 
   return (
-    <Painel aberto={!!os} onFechar={onFechar} t={t} titulo="Confirmar serviço"
+    <Painel aberto={!!os} onFechar={onFechar} t={t} titulo="Confirmar serviço" numero={os&&os.numero}
       subtitulo={os ? (os.cliente_nome + ' · ' + (os.produto || os.servico || '—')) : ''}>
       {os && (<>
         {/* aprovado x taxa */}
