@@ -219,12 +219,14 @@ export default function Recibo() {
   }
 
   async function salvarNaOS() {
+    // a data de atendimento e obrigatoria na OS — sem ela o insert quebra
+    if(!form.data_entrada){ alert('Preencha a data de atendimento.'); return }
     setSalvando(true)
     // os aparelhos viram jsonb + os campos de texto produto/servico de uma vez
     const derivado = camposDaOS(form.aparelhos != null ? form.aparelhos : lerAparelhos(form))
     const novo = {...form, ...derivado}
     const mudancas=[]
-    const campos={cliente_nome:'Nome',cliente_telefone:'Telefone',cliente_endereco:'Endereco',produto:'Produto',servico:'Servico',relato_cliente:'Relato',descricao:'Descricao',valor:'Valor',observacoes:'Obs',garantia_dias:'Garantia'}
+    const campos={cliente_nome:'Nome',cliente_telefone:'Telefone',cliente_endereco:'Endereco',produto:'Produto',servico:'Servico',relato_cliente:'Relato',descricao:'Descricao',valor:'Valor',observacoes:'Obs',garantia_dias:'Garantia',data_entrada:'Data de atendimento',data_conclusao:'Data de conclusao'}
     for(const [k,label] of Object.entries(campos)){
       if(String(os[k]||'')!==String(novo[k]||'')) mudancas.push(label+': "'+( os[k]||'-')+'" -> "'+( novo[k]||'-')+'"')
     }
@@ -237,6 +239,9 @@ export default function Recibo() {
       relato_cliente:form.relato_cliente,descricao:form.descricao,
       valor:Number(form.valor)||0,observacoes:form.observacoes,
       garantia_dias:form.garantia_dias==null?null:Number(form.garantia_dias),
+      // datas do rodape do recibo — vazio vira null pra nao quebrar a coluna date
+      data_entrada:form.data_entrada||null,
+      data_conclusao:form.data_conclusao||null,
       alterada:mudancas.length?true:os.alterada,historico_alteracoes:novoHist,
     }).eq('id',os.id)
     setSalvando(false)
@@ -371,6 +376,16 @@ export default function Recibo() {
     : []
   const somaAps = somaAparelhos(aparelhos)
 
+  // mudou alguma coisa no cartao de ajustes (datas ou garantia)?
+  const mudouAjustes = !!form && !!os && (
+    String(form.data_entrada||'')    !== String(os.data_entrada||'') ||
+    String(form.data_conclusao||'')  !== String(os.data_conclusao||'') ||
+    String(form.garantia_dias??'')   !== String(os.garantia_dias??'')
+  )
+  const rotDia = {display:'block',fontSize:10,color:t.textSoft,fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:4}
+  const inpDia = {width:'100%',padding:'9px 10px',borderRadius:10,border:'1px solid '+t.border,background:t.bgInput,
+                  color:t.text,fontSize:13,fontFamily:'inherit',cursor:'pointer'}
+
   const s = {
     card:{background:t.bgCard,border:'1px solid '+t.border,borderRadius:16,boxShadow:t.shadow,overflow:'hidden'},
     btnSm:{padding:'6px 14px',borderRadius:8,border:'1px solid '+t.border,fontSize:12,cursor:'pointer',background:t.bgCard,fontFamily:'inherit',fontWeight:500,color:t.text},
@@ -401,11 +416,31 @@ export default function Recibo() {
             </div>
             <style dangerouslySetInnerHTML={{__html: CSS_RECIBO}}/>
 
-            {/* seletor de garantia — vale pro recibo e pra imagem */}
+            {/* datas + garantia — valem pro recibo da tela E pra imagem */}
             {!editando&&(
               <div style={{maxWidth:420,margin:'0 auto 14px',background:t.bgCard,border:'1px solid '+t.borderSoft,
                            borderRadius:16,boxShadow:t.shadow,padding:'13px 15px'}}>
-                <div style={{fontSize:10,fontWeight:800,textTransform:'uppercase',letterSpacing:'.07em',color:t.textSoft,marginBottom:9}}>Garantia do serviço</div>
+                <div style={{fontSize:10,fontWeight:800,textTransform:'uppercase',letterSpacing:'.07em',color:t.textSoft,marginBottom:9}}>Datas do serviço</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:9}}>
+                  <div>
+                    <label style={rotDia}>Atendimento</label>
+                    <input type="date" style={inpDia} value={form.data_entrada||''} onChange={e=>up('data_entrada',e.target.value)}/>
+                  </div>
+                  <div>
+                    <label style={rotDia}>Concluído em</label>
+                    <input type="date" style={inpDia} value={form.data_conclusao||''} onChange={e=>up('data_conclusao',e.target.value)}/>
+                  </div>
+                </div>
+                {/* a OS entrou num dia e foi concluida em outro: sem data de
+                    conclusao gravada o recibo repetia a data de entrada */}
+                {!form.data_conclusao&&concluida&&(
+                  <div style={{fontSize:11,color:t.textSoft,marginTop:7,lineHeight:1.5}}>
+                    Sem data de conclusão o recibo repete a data de atendimento. Preencha se foi em outro dia.
+                  </div>
+                )}
+
+                <div style={{fontSize:10,fontWeight:800,textTransform:'uppercase',letterSpacing:'.07em',color:t.textSoft,margin:'14px 0 9px',
+                             paddingTop:13,borderTop:'1px solid '+t.borderSoft}}>Garantia do serviço</div>
                 <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
                   {GARANTIAS.map(g=>{
                     const on = garantiaDias === g.dias
@@ -419,11 +454,17 @@ export default function Recibo() {
                     )
                   })}
                 </div>
-                {form.garantia_dias!==os.garantia_dias&&(
+                {garantiaDias>0&&validadeGarantia(dataFim,garantiaDias)&&(
+                  <div style={{fontSize:11,color:t.textSoft,marginTop:8}}>
+                    Conta a partir da conclusão — válida até <strong style={{color:t.text}}>{validadeGarantia(dataFim,garantiaDias)}</strong>.
+                  </div>
+                )}
+
+                {mudouAjustes&&(
                   <button className="sg-btn" onClick={salvarNaOS} disabled={salvando}
-                    style={{marginTop:10,width:'100%',padding:'10px',borderRadius:12,border:'none',background:t.accent,color:'#fff',
+                    style={{marginTop:12,width:'100%',padding:'11px',borderRadius:12,border:'none',background:t.accent,color:'#fff',
                             fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
-                    {salvando?'Salvando...':'Salvar garantia na OS'}
+                    {salvando?'Salvando...':'Salvar na OS'}
                   </button>
                 )}
               </div>
@@ -447,6 +488,16 @@ export default function Recibo() {
                 </div>
                 <div style={{marginTop:12,fontSize:13}}><EditField campo="relato_cliente" label="Relato do cliente" textarea/></div>
                 <div style={{marginTop:12,fontSize:13}}><EditField campo="descricao" label="Diagnostico" textarea/></div>
+                <div style={{marginTop:14,display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                  <div>
+                    <label style={rotDia}>Data de atendimento</label>
+                    <input type="date" style={inpDia} value={form.data_entrada||''} onChange={e=>up('data_entrada',e.target.value)}/>
+                  </div>
+                  <div>
+                    <label style={rotDia}>Concluído em</label>
+                    <input type="date" style={inpDia} value={form.data_conclusao||''} onChange={e=>up('data_conclusao',e.target.value)}/>
+                  </div>
+                </div>
                 <div style={{marginTop:14}}>
                   <span style={{display:'block',fontWeight:600,color:t.textSoft,fontSize:11,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:5}}>Valor total</span>
                   <input type="number" value={form.valor||0} onChange={e=>up('valor',e.target.value)}

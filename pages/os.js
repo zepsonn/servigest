@@ -104,7 +104,11 @@ function FormOS({f,setF,t,agendamentos,tecnicos,servicosSalvos}){
     <FG label="Diagnóstico / Descrição" value={f.descricao||''} onChange={v=>setF({...f,descricao:v})} t={t} textarea/>
 
     <div style={sec}>AGENDAMENTO</div>
-    <FG label="Data *" value={f.data_entrada||''} onChange={v=>setF({...f,data_entrada:v})} t={t} type="date"/>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+      <FG label="Data de atendimento *" value={f.data_entrada||''} onChange={v=>setF({...f,data_entrada:v})} t={t} type="date"/>
+      {/* quando o serviço termina em outro dia — sem isso o recibo repete a data de entrada */}
+      <FG label="Concluída em" value={f.data_conclusao||''} onChange={v=>setF({...f,data_conclusao:v})} t={t} type="date"/>
+    </div>
     <div style={{marginBottom:12}}>
       <label style={lbl}>Período</label>
       <div style={{display:'flex',gap:8}}>
